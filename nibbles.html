@@ -30,6 +30,10 @@ const rows = 25;
 const cell = canvas.width / cols;
 const padding = 1;//1 cella vuota intorno
 
+let bananaGrow = 0;//quando settato il serpente creeesce
+let poisonEffect = 0;//quando settato il serpente e' stupefacente :)
+let skeletorFactor = 1;//fattore di magrezza, default = 1
+
 let snake = [ { x: 10, y: 10, oldX: 9, oldY: 10 } ];
 
 //problema della direzione, aggiornata al tick, ma con coda...
@@ -38,9 +42,7 @@ let nextDir = dir;//aggiorno al tick, non immediatamente
 let inputQueue = [];
 
 
-let apples = [ { x: 5, y: 5, type: 0 } ];//serpente cresce
-let bombs = [];//serpente muore
-let poisons = [];//serpente intossicato
+let apples = [ { x: 5, y: 5, type: 0 } ];//serpente cresce/si droga/muore
 let alive = true;
 let snakeMinLength = 4;
 
@@ -50,10 +52,12 @@ const COLORS = {
 	snakeLight1:'#f85', snakeDark1:'#c44', //red
 	snakeLight2:'#85f', snakeDark2:'#44c', //violet
 	snakeLight3:'#860', snakeDark3:'#640', //brown
+	snakeLight4:'#ccc', snakeDark4:'#aaa', //brown
 	backgroundLight0:'#420', backgroundDark0:'#200', backgroundBorder0:'#640', 
 	backgroundLight1:'#024', backgroundDark1:'#002', backgroundBorder1:'#046',
 	backgroundLight2:'#240', backgroundDark2:'#020', backgroundBorder2:'#460',
 	backgroundLight3:'#444', backgroundDark3:'#222', backgroundBorder3:'#666',
+	backgroundLight4:'#620', backgroundDark4:'#000', backgroundBorder4:'#b60',
 	brown:'#640',
 	red:'#f00',
 	white:'#fff',				 
@@ -131,7 +135,7 @@ function drawSegment(curr, prev, isLast) {
   ctx.beginPath();
   ctx.moveTo(px, py);
   ctx.lineTo(nx, ny);
-  ctx.lineWidth = cell - 2;
+  ctx.lineWidth = (cell * skeletorFactor) - 2;
   ctx.strokeStyle = snakePattern;
   ctx.stroke();
   
@@ -300,6 +304,85 @@ function drawApple(apple) {
   ctx.quadraticCurveTo(cx + 4, cy - r - 3, cx, cy - r - 4);
   ctx.fill();
 }
+
+//w la zucca
+function drawPumpkin(pumpkin) {
+  const cx = pumpkin.x * cell + cell / 2;
+  const cy = pumpkin.y * cell + cell / 2;
+  const r = 2 * cell / 3;
+
+  // corpo della zucca (arancione con ombreggiatura)
+  const grad = ctx.createRadialGradient(cx - r/4, cy - r/4, r/8, cx, cy, r);
+  grad.addColorStop(0, '#fb4');  // luce arancione chiara
+  grad.addColorStop(0.5, '#f90');// arancione medio
+  grad.addColorStop(1, '#a50');  // ombra marrone-arancio
+  ctx.fillStyle = grad;
+
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, r * 0.9, r * 0.85, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.closePath();
+
+  // scanalature verticali (righe scure che danno effetto zucca)
+  ctx.strokeStyle = 'rgba(80,40,0,0.35)';
+  ctx.lineWidth = Math.max(1, cell * 0.06);
+  for (let i = -2; i <= 2; i++) {
+    ctx.beginPath();
+    ctx.ellipse(cx + (i * r * 0.18), cy, r * 0.6, r * 0.85, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.closePath();
+  }
+
+  // gambo verde in alto
+  const stemH = r * 0.35;
+  const stemW = r * 0.25;
+  ctx.beginPath();
+  ctx.fillStyle = COLORS.green;
+  ctx.moveTo(cx - stemW / 2, cy - r * 0.9);
+  ctx.lineTo(cx + stemW / 2, cy - r * 0.9);
+  ctx.lineTo(cx + stemW * 0.4, cy - r - stemH);
+  ctx.lineTo(cx - stemW * 0.4, cy - r - stemH);
+  ctx.closePath();
+  ctx.fill();
+
+  // faccina (jack-o’-lantern) – occhi triangolari + bocca a zig-zag
+  ctx.fillStyle = COLORS.darkGray;
+  const eyeOffsetX = r * 0.35;
+  const eyeOffsetY = r * 0.15;
+  const eyeSize = r * 0.25;
+
+  // occhi
+  ctx.beginPath();
+  ctx.moveTo(cx - eyeOffsetX - eyeSize/2, cy - eyeOffsetY);
+  ctx.lineTo(cx - eyeOffsetX + eyeSize/2, cy - eyeOffsetY - eyeSize);
+  ctx.lineTo(cx - eyeOffsetX + eyeSize/2, cy - eyeOffsetY + eyeSize/2);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.moveTo(cx + eyeOffsetX + eyeSize/2, cy - eyeOffsetY);
+  ctx.lineTo(cx + eyeOffsetX - eyeSize/2, cy - eyeOffsetY - eyeSize);
+  ctx.lineTo(cx + eyeOffsetX - eyeSize/2, cy - eyeOffsetY + eyeSize/2);
+  ctx.closePath();
+  ctx.fill();
+
+  // bocca a zig-zag (tipo sorriso spaventoso)
+  ctx.beginPath();
+  const mouthY = cy + r * 0.25;
+  const mouthW = r * 0.8;
+  const mouthH = r * 0.25;
+  const teeth = 5;
+  const step = mouthW / teeth;
+  ctx.moveTo(cx - mouthW / 2, mouthY);
+  for (let i = 1; i <= teeth; i++) {
+    const dir = i % 2 === 0 ? 1 : -1;
+    ctx.lineTo(cx - mouthW / 2 + i * step, mouthY + dir * mouthH * 0.4);
+  }
+  ctx.lineTo(cx + mouthW / 2, mouthY);
+  ctx.closePath();
+  ctx.fill();
+}
+
 
 //bombetta
 function drawBomb(bomb) {
@@ -616,31 +699,23 @@ function drawBackground() {
 }
 
 //collisioni
-function checkCollisione(head) {
+function checkWallCollision(head) {
   if (head.x < padding || head.x >= (cols - padding))
     return true;
   if (head.y < padding || head.y >= (rows - padding))
     return true;
 	
-  for (let i = 0; i < snake.length; i++) {
-    if (snake[i].x === head.x && snake[i].y === head.y) {
-      return true;
-	}
-  }
-  
-  for (let i = 0; i < bombs.length; i++) {
-    if (head.x === bombs[i].x && head.y === bombs[i].y) return true;
-  }
+  return checkSameCell(head, snake, 0);
 }
 
 
 
 //controlla l'array cella (x,y) vuota e distante da altre celle
-function checkSameCell(obj, arr) {
+function checkSameCell(obj, arr, distance) {
   for (let i = 0; i < arr.length; i++) {
-      if (Math.abs(obj.x - arr[i].x) < 2 && Math.abs(obj.y - arr[i].y) < 2) return false;
+      if (Math.abs(obj.x - arr[i].x) <= distance && Math.abs(obj.y - arr[i].y) <= distance) return true;
   }
-  return true;
+  return false;
 }
 
 //mangiata la mela/bomba/banana -> respawn
@@ -662,7 +737,7 @@ function spawnObject(myArray, myType) {
     if (Math.abs(snake[0].x - obj.x) < 4 && Math.abs(snake[0].y - obj.y) < 4) valid = false;//troppo vicina    
 
     //controlla mela sopra serpente, altre mele, bombette e veleno
-	valid = valid && checkSameCell(obj, snake) && checkSameCell(obj, apples) && checkSameCell(obj, bombs) && checkSameCell(obj, poisons);
+	valid = valid && !checkSameCell(obj, snake, 2) && !checkSameCell(obj, apples, 2);
     
 	//se arrivo qui e' ok
 	if (valid) { 
@@ -714,8 +789,7 @@ document.addEventListener('keydown', e => {
 
 
 
-let bananaGrow = 0;
-let poisonEffect = 0;
+
 //GIOCO
 function tick() {
   if (!alive) return;
@@ -730,9 +804,6 @@ function tick() {
   }
   
   
-  
-  //console.log('SNAKE=',snake);
-  
   //crea nuova testa
   let newHead = { 
 	x: snake[0].x + dir.x, 
@@ -741,15 +812,13 @@ function tick() {
 	oldY: snake[0].y
   }; 
   
-  //check collisione
-  let isCollisione = checkCollisione(newHead);
-  if (isCollisione) {
+  //controlla collisioni
+  let isWallCollision = checkWallCollision(newHead);
+  if (isWallCollision) {
     alive = false;
 	alert('Game Over!');
-	//clearInterval(inter);
 	return;
   }
-  
   
   //aggiunge la testa in testa :-)
   snake.unshift(newHead);
@@ -763,61 +832,96 @@ function tick() {
     if (newHead.x === apples[i].x && newHead.y === apples[i].y) {
 	  eatApple = true;
 	  if(apples[i].type === 0) {
+	    //meluzza!!!
 	    apples.splice(i, 1);//rimuove l'elemento i dall'array
-        //respawn
-        canSpawn = spawnObject(apples, 0);
-	    //aggiungi oggetti random: bombette a volonta' + un po' di mele multiple + banane rare
+        
+        canSpawn = spawnObject(apples, 0);//respawn
+	    
+		//aggiungi oggetti random: bombette a volonta' + un po' di mele multiple + banane rare
 	    let objectType = (Math.random() * 100) | 0;
-	    if (objectType < 10) spawnObject(bombs, 0);//bombetta
-		if (objectType > 10 && objectType < 20) spawnObject(bombs, 1);//granatina
-	    if (objectType > 20 && objectType < 30) spawnObject(poisons, 0);//funghetto
-		if (objectType > 30 && objectType < 40) spawnObject(poisons, 1);//veleno
-	    if (objectType > 80 && objectType < 90 && apples.length < 4) spawnObject(apples, 0);//altra mela
-	    if (objectType > 90 && apples.length < 4) spawnObject(apples, 1);//banana!!!
-	  } else { 
-	  	bananaGrow = 10;
+		if (objectType > 10 && objectType < 15) spawnObject(apples, 0); // altra mela
+		else if (objectType > 20 && objectType < 30) spawnObject(apples, 1); // banana
+		else if (objectType > 30 && objectType < 40) spawnObject(apples, 2); // funghetto
+		else if (objectType > 40 && objectType < 50) spawnObject(apples, 3); // veleno
+		else if (objectType > 50 && objectType < 65) spawnObject(apples, 4); // granatina
+		else if (objectType > 70 && objectType < 85) spawnObject(apples, 5); // bombetta
+		else if (objectType > 0.90) spawnObject(apples, 6); // bombetta
+		
+	  } else if (apples[i].type === 1) { 
+	    //banana!!!
 		apples.splice(i, 1);//rimuove l'elemento i dall'array
+		
+		//effetti collaterali...
+	  	bananaGrow = 10;
+		
 		//cambio colore
 	    currentSnakePattern = (currentSnakePattern+1) % 4;
 	    snakePattern = createSnakePattern();
-	  }
+	  } else if (apples[i].type === 2) {
+	    //poison
+		apples.splice(i, 1);//rimuove l'elemento i dall'array
+		
+		//effetti collaterali...
+		poisonEffect = 30;
+	  } else if (apples[i].type === 3) {
+	    //poison
+		apples.splice(i, 1);//rimuove l'elemento i dall'array
+		
+		//effetti collaterali...
+		poisonEffect = 60;
+	  } else if (apples[i].type === 4 || apples[i].type === 5) {
+	    //bombetta/granata
+		apples.splice(i, 1);//rimuove l'elemento i dall'array
+		
+		//effetti collaterali...
+		alive = false;
+		alert('Game Over!');
+		return;
+	  } else if (apples[i].type === 6) {
+	    //skeletor
+		apples.splice(i, 1);//rimuove l'elemento i dall'array
+		
+		//effetti collaterali...
+		skeletorFactor = 0.1;
+		currentSnakePattern = 4;
+	    snakePattern = createSnakePattern();
+	  }	  
     }
   }
   
-  
-  //check veleno
-  let eatPoison = false;
-  for (let i = 0; i < poisons.length; i++) {
-    if (newHead.x === poisons[i].x && newHead.y === poisons[i].y) {
-	  poisons.splice(i,1);//rimuove l'elemento i dall'array
-      eatPoison = true;
-	  poisonEffect = 50;
-    }
+  //gestisce skeletrazzi
+  if (skeletorFactor < 1) {
+    skeletorFactor += 0.025;
+	if (skeletorFactor > 1) {
+	  skeletorFactor = 1;
+	  currentSnakePattern = 0;
+	  snakePattern = createSnakePattern();
+	}
   }
   
   //gestisce crescita da banana
-  if(bananaGrow > 0) {
+  if (bananaGrow > 0) {
     bananaGrow--;
-	if(bananaGrow === 0) {
+	if (bananaGrow === 0) {
 	  currentSnakePattern = 0;
 	  snakePattern = createSnakePattern();
 	}
   }
   
   //gestisce serpentone drogato
-  if(poisonEffect > 0) {
+  if (poisonEffect > 0) {
     sgamolla();//smonta serpentone
 	currentSnakePattern = (currentSnakePattern+1) % 4;
 	snakePattern = createSnakePattern();
 	poisonEffect--;
-	if(poisonEffect === 0) {
+	if (poisonEffect === 0) {
 	  currentSnakePattern = 0;
 	  snakePattern = createSnakePattern();
 	}
   }
   
-  //
-  if (!(eatApple || bananaGrow || eatPoison)) {
+  
+  if (!(eatApple || bananaGrow)) {
     //toglie la coda
     if(snake.length > snakeMinLength) {
 	  snake.pop();
@@ -828,8 +932,7 @@ function tick() {
   if (!canSpawn) {
     //svuota la griglia
 	apples = [ { x: 5, y: 5, type: 0 } ];
-    bombs = [];
-    poisons = [];
+
   }
   
   //DISEGNA!!!
@@ -851,21 +954,20 @@ function drawAll() {
   //scacchiera
   drawBackground();
   
-  //mela
+  //mela/banana/funghi/bombette
   for (let i = 0; i < apples.length; i++) {
-    apples[i].type === 1 ? drawBanana(apples[i]) : drawApple(apples[i]);
+    switch(apples[i].type) {
+	  case 0: drawApple(apples[i]); break;
+	  case 1: drawBanana(apples[i]); break;
+	  case 2: drawMushroom(apples[i]); break;
+	  case 3: drawPoison(apples[i]); break;
+	  case 4: drawGrenade(apples[i]); break;
+	  case 5: drawBomb(apples[i]); break;
+	  case 6: drawPumpkin(apples[i]); break;
+	}
   }
   
-  //bombette
-  for (let i = 0; i < bombs.length; i++) {
-    bombs[i].type === 1 ? drawGrenade(bombs[i]) : drawBomb(bombs[i]);
-  }
-  
-  //veleni
-  for (let i = 0; i < poisons.length; i++) {
-    poisons[i].type === 1 ? drawMushroom(poisons[i]) : drawPoison(poisons[i]);
-  }
-  
+    
   //corpo
   for (let i = 1; i < snake.length; i++) {
     //console.log('B '+i+' >> '+snake[i].x+' '+snake[i].y);
@@ -906,22 +1008,20 @@ function gameLoop(timestamp) {
   //scacchiera
   drawBackground();
   
-  //mela
+  //mela/banana/funghi/bombette
   for (let i = 0; i < apples.length; i++) {
-    apples[i].type == 1 ? drawBanana(apples[i]) : drawApple(apples[i]);
+    switch(apples[i].type) {
+	  case 0: drawApple(apples[i]); break;
+	  case 1: drawBanana(apples[i]); break;
+	  case 2: drawMushroom(apples[i]); break;
+	  case 3: drawPoison(apples[i]); break;
+	  case 4: drawGrenade(apples[i]); break;
+	  case 5: drawBomb(apples[i]); break;
+	  case 6: drawPumpkin(apples[i]); break;
+	}
   }
   
-  //bombette = morte
-  for (let i = 0; i < bombs.length; i++) {
-    bombs[i].type === 1 ? drawGrenade(bombs[i]) : drawBomb(bombs[i]);
-  }
-    
-  //veleni = reset serpente
-  for (let i = 0; i < poisons.length; i++) {
-    poisons[i].type === 1 ? drawMushroom(poisons[i]) : drawPoison(poisons[i]);
-  }
   
-
   //console.log('t='+t+' snake=',snake);
     
   //corpo
@@ -955,11 +1055,13 @@ function reset() {
   snake = [ { x: 10, y: 10, oldX: 9, oldY: 10 } ];
   dir = { x: 1, y: 0 };
   apples = [ { x: 5, y: 5, type: 0 } ];
-  bombs = [];
-  poisons = [];
   snakeMinLength = 4;
   bananaGrow = 0;
   poisonEffect = 0;
+  skeletorFactor = 1;
+
+  currentSnakePattern = 0;
+  snakePattern = createSnakePattern();
   
   alive = true;
   lastTime = performance.now();
