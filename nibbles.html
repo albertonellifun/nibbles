@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Nibbles/Snake clone</title>
+<style>
+  body {
+    background: #111;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+	overflow: hidden;
+  }
+  canvas {
+    border: 4px solid #33cc33;
+	padding: 8px;
+  }
+</style>
+</head>
+<body>
+  <canvas id="game" width="500" height="500"></canvas>
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const cols = 25;
+const rows = 25;
+const cell = canvas.width / cols;
+const padding = 1;//1 cella vuota intorno
+
+let snake = [ { x: 10, y: 10, oldX: 9, oldY: 10 } ];
+
+//problema della direzione, aggiornata al tick, ma con coda...
+let dir = { x: 1, y: 0 };
+let nextDir = dir;//aggiorno al tick, non immediatamente
+let inputQueue = [];
+
+
+let apples = [ { x: 5, y: 5, type: 0 } ];//serpente cresce
+let bombs = [];//serpente muore
+let poisons = [];//serpente intossicato
+let alive = true;
+let snakeMinLength = 4;
+
+let currentSnakePattern = 0;
+const COLORS = {
+	snakeLight0:'#8f5', snakeDark0:'#4c4', //green
+	snakeLight1:'#f85', snakeDark1:'#c44', //red
+	snakeLight2:'#85f', snakeDark2:'#44c', //violet
+	snakeLight3:'#860', snakeDark3:'#640', //brown
+	backgroundLight0:'#420', backgroundDark0:'#200', backgroundBorder0:'#640', 
+	backgroundLight1:'#024', backgroundDark1:'#002', backgroundBorder1:'#046',
+	backgroundLight2:'#240', backgroundDark2:'#020', backgroundBorder2:'#460',
+	backgroundLight3:'#444', backgroundDark3:'#222', backgroundBorder3:'#666',
+	brown:'#640',
+	red:'#f00',
+	white:'#fff',				 
+	black:'#000',
+	gray:'#666', lightGray:'#9aa', medGray:'#999', darkGray:'#222',
+	green:'#6f6', medGreen: '#3a3', darkGreen: '#181',
+	appleRedLight:'#f66', appleRedMed:'#c00', appleRedDark:'#600',
+	};
+
+//pattern squame
+function createSnakePattern() {
+  const p = document.createElement('canvas');
+  p.width = p.height = 12;
+  const pctx = p.getContext('2d');
+
+  pctx.fillStyle = COLORS['snakeDark' + currentSnakePattern];
+  pctx.fillRect(0, 0, 12, 12);
+
+  pctx.fillStyle = COLORS['snakeLight' + currentSnakePattern];
+  for (let y = 0; y < 12; y += 6) {
+    for (let x = (y/6)%2===0 ? 0 : 6; x < 12; x += 12) {
+      pctx.beginPath();
+      pctx.arc(x+3, y+3, 3, 0, Math.PI*2);
+      pctx.fill();
+    }
+  }
+  return ctx.createPattern(p, 'repeat');
+}
+let snakePattern = createSnakePattern();
+
+
+//corpo
+function drawSegment(curr, prev, isLast) {
+  const px = curr.x * cell + cell / 2;
+  const py = curr.y * cell + cell / 2;
+  
+  ctx.save();
+  ctx.fillStyle = snakePattern;
+
+  if (!isLast) {
+    //segmento normale
+    ctx.beginPath();
+    ctx.arc(px, py, cell / 2 - 2, 0, Math.PI * 2);
+    ctx.fill();
+	ctx.stroke();
+  } else {
+    //ultimo segmento == coda
+    const steps = 4;//mini-cerchi a stringere
+    const radiusStart = cell / 2.1;
+
+    //direzione verso il segmento precedente
+    const dx = curr.x - prev.x;
+    const dy = curr.y - prev.y;
+
+    let cx = px;
+    let cy = py;
+
+    for (let i = 0; i < steps; i++) {
+      const t = i / steps;
+      const radius = radiusStart * (1 - t * 0.7);//raggio decrescente
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      //spostamento verso il segmento precedente
+      cx += dx * (cell / steps);
+      cy += dy * (cell / steps);
+    }
+  }
+  
+  //raccordo col segmento precedente per evitare spazi
+  const nx = prev.x * cell + cell / 2;
+  const ny = prev.y * cell + cell / 2;
+  ctx.beginPath();
+  ctx.moveTo(px, py);
+  ctx.lineTo(nx, ny);
+  ctx.lineWidth = cell - 2;
+  ctx.strokeStyle = snakePattern;
+  ctx.stroke();
+  
+  ctx.restore();
+}
+
+//testa
+function drawHead(curr, dir, neck) {
+  const cx = curr.x * cell + cell / 2;
+  const cy = curr.y * cell + cell / 2;
+  
+  //testa
+  ctx.fillStyle = COLORS['snakeDark'+currentSnakePattern];//COLORS.green;
+  ctx.beginPath();
+  ctx.arc(cx, cy, cell / 2.2, 0, Math.PI * 2);
+  ctx.fill();
+  
+  //collo 
+  if(neck) {
+    const neckX = neck.x * cell + cell / 2;
+    const neckY = neck.y * cell + cell / 2;
+    ctx.beginPath();
+    ctx.arc(neckX, neckY, cell / 2.2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  //occhi
+  const eyeOffset = 2 * cell / 5;
+  const eyeSize = cell / 3;
+  let ex1, ey1, ex2, ey2;
+  if (dir.y === 1) {
+    ex1 = cx - eyeOffset / 2; ey1 = cy - eyeOffset;
+    ex2 = cx + eyeOffset / 2; ey2 = cy - eyeOffset;
+  } else if (dir.y === -1) {
+    ex1 = cx - eyeOffset / 2; ey1 = cy + eyeOffset;
+    ex2 = cx + eyeOffset / 2; ey2 = cy + eyeOffset;
+  } else if (dir.x === -1) {
+    ex1 = cx + eyeOffset; ey1 = cy - eyeOffset / 2;
+    ex2 = cx + eyeOffset; ey2 = cy + eyeOffset / 2;
+  } else {
+    ex1 = cx - eyeOffset; ey1 = cy - eyeOffset / 2;
+    ex2 = cx - eyeOffset; ey2 = cy + eyeOffset / 2;
+  }
+  
+  //occhio
+  ctx.fillStyle = COLORS.white;
+  ctx.beginPath(); ctx.arc(ex1, ey1, eyeSize, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(ex2, ey2, eyeSize, 0, Math.PI * 2); ctx.fill();
+  
+  //pupille
+  ctx.fillStyle = COLORS.black;
+  ctx.beginPath(); ctx.arc(ex1, ey1, eyeSize / 2.5, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(ex2, ey2, eyeSize / 2.5, 0, Math.PI * 2); ctx.fill();
+
+  let distanceAppleSnake = 999;
+  for(let i = 0; i < apples.length; i++) {
+	let dist = Math.sqrt( (apples[i].x - curr.x)*(apples[i].x - curr.x) + (apples[i].y - curr.y)*(apples[i].y - curr.y) );
+	if (dist < distanceAppleSnake) distanceAppleSnake = dist;
+  }
+  
+  if(distanceAppleSnake < 4) {
+    //bocca rossa + grande se vicina alla mela
+    const mounthSize = cell / ( Math.max(distanceAppleSnake, 3));
+	
+	ctx.fillStyle = COLORS.red;
+    ctx.beginPath();
+	if (dir.y === 1) {
+      ctx.arc(cx, cy + mounthSize, mounthSize, 0, Math.PI, false);
+    } else if (dir.y === -1) {
+      ctx.arc(cx, cy - mounthSize, mounthSize, Math.PI, 0, false);
+    } else if (dir.x === 1) {
+      ctx.arc(cx + mounthSize, cy, mounthSize, Math.PI / 2, -Math.PI / 2, true);
+    } else if (dir.x === -1) {
+      ctx.arc(cx - mounthSize, cy, mounthSize, -Math.PI / 2, Math.PI / 2, true);
+    }
+    ctx.fill();
+  } else {
+    //linguetta biforcuta + narici
+    const tongueLength = cell / 10;//distanceAppleSnake/20;
+	const noseWidth = cell / 12;
+    const noseHeight = cell / 12;
+	
+	ctx.strokeStyle = COLORS.red;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+	
+    if (dir.x === 1) {
+      ctx.moveTo(cx + cell / 2.2, cy);
+      ctx.lineTo(cx + tongueLength + cell / 1.4, cy);
+      ctx.lineTo(cx + tongueLength + cell / 1.3, cy - 3);
+      ctx.moveTo(cx + tongueLength + cell / 1.4, cy);
+      ctx.lineTo(cx + tongueLength + cell / 1.3, cy + 3);
+	  
+	  ctx.fillRect(ex1 + eyeSize * 2, ey1 - noseHeight / 2, noseWidth, noseHeight);
+      ctx.fillRect(ex2 + eyeSize * 2, ey2 - noseHeight / 2, noseWidth, noseHeight);
+    } else if (dir.x === -1) {
+      ctx.moveTo(cx - cell / 2.2, cy);
+      ctx.lineTo(cx - tongueLength - cell / 1.4, cy);
+      ctx.lineTo(cx - tongueLength - cell / 1.3, cy - 3);
+      ctx.moveTo(cx - tongueLength - cell / 1.4, cy);
+      ctx.lineTo(cx - tongueLength - cell / 1.3, cy + 3);
+	  
+	  ctx.fillRect(ex1 - eyeSize * 2 - noseWidth, ey1 - noseHeight / 2, noseWidth, noseHeight);
+      ctx.fillRect(ex2 - eyeSize * 2 - noseWidth, ey2 - noseHeight / 2, noseWidth, noseHeight);
+    } else if (dir.y === 1) {
+      ctx.moveTo(cx, cy + cell / 2.2);
+      ctx.lineTo(cx, cy + tongueLength + cell / 1.4);
+      ctx.lineTo(cx - 3, cy + tongueLength + cell / 1.3);
+      ctx.moveTo(cx, cy + tongueLength + cell / 1.4);
+      ctx.lineTo(cx + 3, cy + tongueLength + cell / 1.3);
+	  
+	  ctx.fillRect(ex1 - noseWidth / 2, ey1 + eyeSize * 2, noseWidth, noseHeight);
+      ctx.fillRect(ex2 - noseWidth / 2, ey2 + eyeSize * 2, noseWidth, noseHeight);
+    } else {
+      ctx.moveTo(cx, cy - cell / 2.2);
+      ctx.lineTo(cx, cy - tongueLength - cell / 1.4);
+      ctx.lineTo(cx - 3, cy - tongueLength - cell / 1.3);
+      ctx.moveTo(cx, cy - tongueLength - cell / 1.4);
+      ctx.lineTo(cx + 3, cy - tongueLength - cell / 1.3);
+	  
+	  ctx.fillRect(ex1 - noseWidth / 2, ey1 - eyeSize * 2 - noseHeight, noseWidth, noseHeight);
+      ctx.fillRect(ex2 - noseWidth / 2, ey2 - eyeSize * 2 - noseHeight, noseWidth, noseHeight);
+    }
+    ctx.stroke();
+  }
+}
+
+//mela
+function drawApple(apple) {
+  const cx = apple.x * cell + cell / 2;
+  const cy = apple.y * cell + cell / 2;
+  const r = 2 * cell / 3;
+
+  //corpo gradiente radiale rosso luccicoso
+  const grad = ctx.createRadialGradient(cx - r/3, cy - r/3, r/4, cx, cy, r);
+  grad.addColorStop(0, COLORS.appleRedLight);
+  grad.addColorStop(0.5, COLORS.appleRedMed);
+  grad.addColorStop(1, COLORS.appleRedDark);
+  ctx.fillStyle = grad;
+
+  //melazza
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, r, 3*r/5, 0, 0, Math.PI * 2);//schiacciata
+  ctx.closePath();
+  ctx.fill();
+
+  //luce
+  ctx.beginPath();
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  ctx.ellipse(cx - r/3, cy - r/3, r/3, r/5, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  //picciolo
+  ctx.strokeStyle = COLORS.brown;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - r);
+  ctx.lineTo(cx, cy - r - 4);
+  ctx.stroke();
+
+  //foglietta
+  ctx.fillStyle = COLORS.medGreen;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - r - 4);
+  ctx.quadraticCurveTo(cx + 4, cy - r - 8, cx + 8, cy - r - 2);
+  ctx.quadraticCurveTo(cx + 4, cy - r - 3, cx, cy - r - 4);
+  ctx.fill();
+}
+
+//bombetta
+function drawBomb(bomb) {
+  const cx = bomb.x * cell + cell / 2;
+  const cy = bomb.y * cell + cell / 2;
+  const r = 2 * cell / 3;
+
+  // corpo scuro con gradiente metallico
+  const grad = ctx.createRadialGradient(cx - r/4, cy - r/4, r/8, cx, cy, r);
+  grad.addColorStop(0, COLORS.lightGray);//leggero highlight centrale
+  grad.addColorStop(0.5, COLORS.medGray);
+  grad.addColorStop(1, COLORS.darkGray);
+  ctx.fillStyle = grad;
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.closePath();
+
+  // riflesso piccolo brillante
+  ctx.beginPath();
+  ctx.fillStyle = 'rgba(255,255,255,0.18)';
+  ctx.ellipse(cx - r/3, cy - r/3, r/3.5, r/6, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.closePath();
+
+  // cucitura / linea circolare leggermente più scura (come giunzione della sfera)
+  ctx.beginPath();
+  ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+  ctx.lineWidth = Math.max(1, cell * 0.06);
+  ctx.arc(cx, cy, r * 0.85, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.closePath();
+
+  // stoppino: linea spessa e curvata verso l'alto
+  const fuseLen = r * 0.5;
+  const fx = cx;
+  const fy = cy - r - 2;
+  ctx.beginPath();
+  ctx.strokeStyle = COLORS.lightGray;
+  ctx.lineWidth = Math.max(2, cell * 0.06);
+  ctx.lineCap = 'round';
+  ctx.moveTo(fx, fy);
+  // un piccolo zig-zag per renderlo più naturale
+  ctx.lineTo(fx - fuseLen * 0.25, fy - fuseLen * 0.25);
+  ctx.lineTo(fx + fuseLen * 0.15, fy - fuseLen * 0.5);
+  ctx.lineTo(fx - fuseLen * 0.05, fy - fuseLen * 0.7);
+  ctx.stroke();
+  ctx.closePath();
+
+  // miccia finale (parte accesa) -> piccolo bagliore/fiammella
+  const flameX = fx - fuseLen * 0.05;
+  const flameY = fy - fuseLen * 0.75;
+  // alone luminoso
+  ctx.beginPath();
+  ctx.fillStyle = 'rgba(255,160,50,0.35)';
+  ctx.ellipse(flameX, flameY, cell * 0.35, cell * 0.18, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.closePath();
+
+  // fiamma interna
+  ctx.beginPath();
+  const flameGrad = ctx.createRadialGradient(flameX, flameY, 1, flameX, flameY, cell * 0.35);
+  flameGrad.addColorStop(0, 'rgba(255,255,160,1)');
+  flameGrad.addColorStop(0.5, 'rgba(255,140,40,0.9)');
+  flameGrad.addColorStop(1, 'rgba(220,60,10,0.8)');
+  ctx.fillStyle = flameGrad;
+  ctx.ellipse(flameX, flameY, cell * 0.22, cell * 0.12, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.closePath();
+
+  // opzionale: piccolo simbolo (skull) — semplice croce per dare "pericolo"
+  ctx.beginPath();
+  ctx.fillStyle = COLORS.white;
+  ctx.font = `${Math.max(8, cell * 0.5)}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('💀', cx, cy + r * 0.05);
+  ctx.closePath();
+}
+
+//granata
+function drawGrenade(grenade) {
+  const cx = grenade.x * cell + cell / 2;
+  const cy = grenade.y * cell + cell / 2;
+  const r = cell / 2;
+
+  // Corpo ovale con gradiente metallico/verde oliva
+  const grad = ctx.createLinearGradient(cx, cy - r, cx, cy + r);
+  grad.addColorStop(0, '#6a7555');
+  grad.addColorStop(0.5, '#4c533b');
+  grad.addColorStop(1, '#3a3f2d');
+  ctx.fillStyle = grad;
+
+  // Corpo principale
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, r * 0.85, r, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.closePath();
+
+  // Linee di segmentazione (a rombi tipiche delle granate "pineapple")
+  ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+  ctx.lineWidth = Math.max(1, cell * 0.05);
+  for (let i = -2; i <= 2; i++) {
+    const offset = (i * r * 0.3);
+    ctx.beginPath();
+    ctx.moveTo(cx - r * 0.9, cy + offset);
+    ctx.lineTo(cx + r * 0.9, cy + offset);
+    ctx.stroke();
+    ctx.closePath();
+  }
+
+  for (let j = -1; j <= 1; j++) {
+    const offset = (j * r * 0.3);
+    ctx.beginPath();
+    ctx.moveTo(cx + offset, cy - r * 1.0);
+    ctx.lineTo(cx + offset, cy + r * 1.0);
+    ctx.stroke();
+    ctx.closePath();
+  }
+
+  // Testa metallica (spoletta)
+  const topH = r * 0.35;
+  ctx.beginPath();
+  const topGrad = ctx.createLinearGradient(cx, cy - r - topH, cx, cy - r);
+  topGrad.addColorStop(0, '#aaa');
+  topGrad.addColorStop(1, '#666');
+  ctx.fillStyle = topGrad;
+  ctx.fillRect(cx - r * 0.55, cy - r - topH, r * 1.1, topH);
+  ctx.closePath();
+
+  // Leva (spoon)
+  ctx.beginPath();
+  ctx.strokeStyle = '#555';
+  ctx.lineWidth = Math.max(2, cell * 0.07);
+  ctx.lineCap = 'round';
+  ctx.moveTo(cx + r * 0.5, cy - r - topH * 0.5);
+  ctx.quadraticCurveTo(cx + r * 0.9, cy - r * 0.4, cx + r * 0.3, cy - r * 0.1);
+  ctx.stroke();
+  ctx.closePath();
+
+  // Anello di sicurezza
+  ctx.beginPath();
+  ctx.strokeStyle = '#ccc';
+  ctx.lineWidth = Math.max(1.5, cell * 0.05);
+  ctx.arc(cx + r * 0.55, cy - r - topH * 0.2, cell * 0.3, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.closePath();
+
+  // Leggero highlight centrale
+  ctx.beginPath();
+  ctx.fillStyle = 'rgba(255,255,255,0.15)';
+  ctx.ellipse(cx - r * 0.4, cy - r * 0.2, r * 0.4, r * 0.9, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.closePath();
+}
+
+
+
+//weeee funghetto!!!
+function drawMushroom(poison) {
+  const cx = poison.x * cell + cell / 2;
+  const cy = poison.y * cell + cell / 2;
+  const stemH = cell * 0.6;       // altezza gambo
+  const stemW = cell * 0.4;       // larghezza gambo
+  const capR = cell * 0.65;       // raggio cappello
+
+  // ---- GAMBO (dritto e cicciottello) ----
+  ctx.beginPath();
+  ctx.roundRect(cx - stemW / 2, cy, stemW, stemH, stemW / 3);
+  const stemGrad = ctx.createLinearGradient(cx, cy, cx, cy + stemH);
+  stemGrad.addColorStop(0, '#f5e7c6');
+  stemGrad.addColorStop(1, '#e2cfa0');
+  ctx.fillStyle = stemGrad;
+  ctx.fill();
+  ctx.lineWidth = Math.max(1, cell * 0.06);
+  ctx.strokeStyle = '#bda981';
+  ctx.stroke();
+
+  // ---- CAPPELLO (rosso con sfumatura) ----
+  const grad = ctx.createLinearGradient(cx - capR, cy - capR, cx + capR, cy);
+  grad.addColorStop(0, '#b80000');
+  grad.addColorStop(0.5, '#ff1a1a');
+  grad.addColorStop(1, '#b80000');
+
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, capR, capR * 0.8, 0, Math.PI, 0);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+  ctx.strokeStyle = '#7a0000';
+  ctx.lineWidth = Math.max(1, cell * 0.07);
+  ctx.stroke();
+
+  // ---- PUNTINI BIANCHI (più grandi e verso il bordo) ----
+  const spots = [
+    { dx: -capR * 0.65, dy: -capR * 0.50, r: capR * 0.13 },
+    { dx: -capR * 0.35, dy: -capR * 0.65, r: capR * 0.12 },
+    { dx:  0,           dy: -capR * 0.7,  r: capR * 0.11 },
+    { dx:  capR * 0.35, dy: -capR * 0.60, r: capR * 0.12 },
+    { dx:  capR * 0.65, dy: -capR * 0.45, r: capR * 0.13 },
+	{ dx: -capR * 0.2,  dy: -capR * 0.45, r: capR * 0.09 },
+    { dx:  capR * 0.2,  dy: -capR * 0.40, r: capR * 0.09 },
+  ];
+
+  ctx.fillStyle = 'white';
+  spots.forEach(s => {
+    ctx.beginPath();
+    ctx.arc(cx + s.dx, cy + s.dy, s.r, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  // ---- OMBREGGIATURA sotto il cappello ----
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + cell * 0.05, capR * 0.9, capR * 0.3, 0, 0, Math.PI);
+  const shadowGrad = ctx.createLinearGradient(cx, cy, cx, cy + cell * 0.3);
+  shadowGrad.addColorStop(0, 'rgba(0,0,0,0.15)');
+  shadowGrad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = shadowGrad;
+  ctx.fill();
+}
+
+
+//veleno!!!
+function drawPoison(poison) {
+  const cx = poison.x * cell + cell / 2;
+  const cy = poison.y * cell + cell / 2;
+  const w = cell * 0.8;      // larghezza barile
+  const h = cell * 1.4;      // altezza barile
+  const r = 4;               // angolo arrotondato
+
+  // ---- CORPO DEL BARILE (giallo) ----
+  const yellowGrad = ctx.createLinearGradient(cx - w / 2, cy, cx + w / 2, cy);
+  yellowGrad.addColorStop(0, '#c90');
+  yellowGrad.addColorStop(0.5, '#fc0');
+  yellowGrad.addColorStop(1, '#c90');
+
+  ctx.beginPath();
+  ctx.roundRect(cx - w / 2, cy - h / 2, w, h, r);
+  ctx.fillStyle = yellowGrad;
+  ctx.fill();
+  ctx.lineWidth = Math.max(1, cell * 0.06);
+  ctx.strokeStyle = COLORS.darkGray;
+  ctx.stroke();
+
+  // ---- BANDE NERE SOPRA E SOTTO ----
+  const bandH = 2;
+  ctx.fillStyle = COLORS.black;
+  ctx.fillRect(cx - w / 2, cy - h / 2, w, bandH);
+  ctx.fillRect(cx - w / 2, cy + h / 2 - bandH, w, bandH);
+
+  // cerchio centrale
+  ctx.beginPath();
+  ctx.arc(cx, cy + cell * 0.1, cell / 2.5, 0, Math.PI * 2);
+  ctx.fillStyle = COLORS.black;
+  ctx.fill();
+  
+  // skull
+  ctx.beginPath();
+  ctx.fillStyle = COLORS.white;
+  ctx.font = `${Math.max(8, cell * 0.5)}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('☢️', cx, cy + r / 2);
+  ctx.closePath();
+}
+
+
+
+
+//banana!!!
+function drawBanana(banana) {
+  const cx = banana.x * cell + cell / 2;
+  const cy = banana.y * cell + cell / 2;
+  const r = 3 * cell / 5;
+
+  // gradiente giallo caldo
+  const grad = ctx.createLinearGradient(cx, cy - r, cx, cy + r * 1.5);
+  grad.addColorStop(0, '#ff9');
+  grad.addColorStop(0.5, '#fd3');
+  grad.addColorStop(1, '#da0');
+  ctx.fillStyle = grad;
+  ctx.strokeStyle = '#b90';
+  ctx.lineWidth = 2;
+
+  ctx.beginPath();
+  // curva superiore ampia (più alta)
+  ctx.moveTo(cx - r, cy - r / 3);
+  ctx.quadraticCurveTo(cx, cy + r * 0.5, cx + r, cy);
+  ctx.quadraticCurveTo(cx, cy + r * 1.8, cx - r, cy - r / 3);
+  ctx.closePath();
+
+  ctx.fill();
+  ctx.stroke();
+}
+
+
+
+
+
+//scacchiera background
+function drawBackground() { 
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      if (x < padding || y < padding || x === (cols - padding) || y === (rows - padding)) {
+		ctx.fillStyle = COLORS['backgroundBorder'+currentSnakePattern];
+	  }
+	  else { 
+		ctx.fillStyle = (x + y) % 2 === 0 ? COLORS['backgroundLight'+currentSnakePattern] : COLORS['backgroundDark'+currentSnakePattern];
+	  }
+      ctx.fillRect(x * cell, y * cell, cell, cell);
+    }
+  }
+}
+
+//collisioni
+function checkCollisione(head) {
+  if (head.x < padding || head.x >= (cols - padding))
+    return true;
+  if (head.y < padding || head.y >= (rows - padding))
+    return true;
+	
+  for (let i = 0; i < snake.length; i++) {
+    if (snake[i].x === head.x && snake[i].y === head.y) {
+      return true;
+	}
+  }
+  
+  for (let i = 0; i < bombs.length; i++) {
+    if (head.x === bombs[i].x && head.y === bombs[i].y) return true;
+  }
+}
+
+
+
+//controlla l'array cella (x,y) vuota e distante da altre celle
+function checkSameCell(obj, arr) {
+  for (let i = 0; i < arr.length; i++) {
+      if (Math.abs(obj.x - arr[i].x) < 2 && Math.abs(obj.y - arr[i].y) < 2) return false;
+  }
+  return true;
+}
+
+//mangiata la mela/bomba/banana -> respawn
+function spawnObject(myArray, myType) {
+  let valid = false;
+  let attempts = 0;
+  
+  while (!valid) {
+    valid = true;
+	attempts++;
+    
+	let obj = {
+      x: Math.floor(Math.random() * (cols - padding * 2)) + padding,
+      y: Math.floor(Math.random() * (rows - padding * 2)) + padding,
+	  type: myType
+    };
+	
+	//distante da testa di serpente almeno 4 celle
+    if (Math.abs(snake[0].x - obj.x) < 4 && Math.abs(snake[0].y - obj.y) < 4) valid = false;//troppo vicina    
+
+    //controlla mela sopra serpente, altre mele, bombette e veleno
+	valid = valid && checkSameCell(obj, snake) && checkSameCell(obj, apples) && checkSameCell(obj, bombs) && checkSameCell(obj, poisons);
+    
+	//se arrivo qui e' ok
+	if (valid) { 
+		myArray.push(obj); 
+		return true; 
+	}
+	
+	if (attempts == 20) {
+	    //se arrivo qui dentro -> il serpente ha vinto!
+		return false;
+	}
+  }
+}
+
+//controlli da tastiera (cambio solo al tick, non immediatamente!)
+/*
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowUp'    && dir.y !== 1  && nextDir.y !== 1)  nextDir = {x:0, y:-1};
+  if (e.key === 'ArrowDown'  && dir.y !== -1 && nextDir.y !== -1) nextDir = {x:0, y:1};
+  if (e.key === 'ArrowLeft'  && dir.x !== 1  && nextDir.x !== 1)  nextDir = {x:-1, y:0};
+  if (e.key === 'ArrowRight' && dir.x !== -1 && nextDir.x !== -1) nextDir = {x:1, y:0};
+  if (e.key === 'R' || e.key === 'r') reset();
+});*/
+//aggiunta gestione coda di input
+document.addEventListener('keydown', e => {
+  let newDir = null;
+  if (e.key === 'ArrowUp')    newDir = {x: 0, y: -1};
+  if (e.key === 'ArrowDown')  newDir = {x: 0, y: 1};
+  if (e.key === 'ArrowLeft')  newDir = {x: -1, y: 0};
+  if (e.key === 'ArrowRight') newDir = {x: 1, y: 0};
+
+  if (e.key === 'R' || e.key === 'r') {
+    reset();
+    return;
+  }
+
+  if (newDir) {
+    const lastDir = inputQueue.length > 0 ? inputQueue[inputQueue.length - 1] : dir;
+    // Evita direzioni opposte
+    if (!(newDir.x === -lastDir.x && newDir.y === -lastDir.y)) {
+      inputQueue.push(newDir);
+      // Limita la lunghezza della coda per sicurezza
+      if (inputQueue.length > 30) inputQueue.shift();
+    }
+  }
+});
+
+
+
+
+
+let bananaGrow = 0;
+let poisonEffect = 0;
+//GIOCO
+function tick() {
+  if (!alive) return;
+  
+  //dir = nextDir;//aggiorna direzione solo al tick!
+  // Applica la prossima direzione dalla coda, se esiste
+  if (inputQueue.length > 0) {
+    const next = inputQueue.shift();
+    if (!(next.x === -dir.x && next.y === -dir.y)) {
+      dir = next;
+    }
+  }
+  
+  
+  
+  //console.log('SNAKE=',snake);
+  
+  //crea nuova testa
+  let newHead = { 
+	x: snake[0].x + dir.x, 
+	y: snake[0].y + dir.y,
+	oldX: snake[0].x,
+	oldY: snake[0].y
+  }; 
+  
+  //check collisione
+  let isCollisione = checkCollisione(newHead);
+  if (isCollisione) {
+    alive = false;
+	alert('Game Over!');
+	//clearInterval(inter);
+	return;
+  }
+  
+  
+  //aggiunge la testa in testa :-)
+  snake.unshift(newHead);
+  
+  
+  //check mela (respawn o taglia coda)
+  let eatApple = false;
+  let canSpawn = true;
+  
+  for (let i = 0; i < apples.length; i++) {
+    if (newHead.x === apples[i].x && newHead.y === apples[i].y) {
+	  eatApple = true;
+	  if(apples[i].type === 0) {
+	    apples.splice(i, 1);//rimuove l'elemento i dall'array
+        //respawn
+        canSpawn = spawnObject(apples, 0);
+	    //aggiungi oggetti random: bombette a volonta' + un po' di mele multiple + banane rare
+	    let objectType = (Math.random() * 100) | 0;
+	    if (objectType < 10) spawnObject(bombs, 0);//bombetta
+		if (objectType > 10 && objectType < 20) spawnObject(bombs, 1);//granatina
+	    if (objectType > 20 && objectType < 30) spawnObject(poisons, 0);//funghetto
+		if (objectType > 30 && objectType < 40) spawnObject(poisons, 1);//veleno
+	    if (objectType > 80 && objectType < 90 && apples.length < 4) spawnObject(apples, 0);//altra mela
+	    if (objectType > 90 && apples.length < 4) spawnObject(apples, 1);//banana!!!
+	  } else { 
+	  	bananaGrow = 10;
+		apples.splice(i, 1);//rimuove l'elemento i dall'array
+		//cambio colore
+	    currentSnakePattern = (currentSnakePattern+1) % 4;
+	    snakePattern = createSnakePattern();
+	  }
+    }
+  }
+  
+  
+  //check veleno
+  let eatPoison = false;
+  for (let i = 0; i < poisons.length; i++) {
+    if (newHead.x === poisons[i].x && newHead.y === poisons[i].y) {
+	  poisons.splice(i,1);//rimuove l'elemento i dall'array
+      eatPoison = true;
+	  poisonEffect = 50;
+    }
+  }
+  
+  //gestisce crescita da banana
+  if(bananaGrow > 0) {
+    bananaGrow--;
+	if(bananaGrow === 0) {
+	  currentSnakePattern = 0;
+	  snakePattern = createSnakePattern();
+	}
+  }
+  
+  //gestisce serpentone drogato
+  if(poisonEffect > 0) {
+    sgamolla();//smonta serpentone
+	currentSnakePattern = (currentSnakePattern+1) % 4;
+	snakePattern = createSnakePattern();
+	poisonEffect--;
+	if(poisonEffect === 0) {
+	  currentSnakePattern = 0;
+	  snakePattern = createSnakePattern();
+	}
+  }
+  
+  //
+  if (!(eatApple || bananaGrow || eatPoison)) {
+    //toglie la coda
+    if(snake.length > snakeMinLength) {
+	  snake.pop();
+	  snakeMinLength = 1;
+	}
+  }
+  
+  if (!canSpawn) {
+    //svuota la griglia
+	apples = [ { x: 5, y: 5, type: 0 } ];
+    bombs = [];
+    poisons = [];
+  }
+  
+  //DISEGNA!!!
+  //drawAll()
+}
+
+//difficile tradurre in italiano, figuriamoci in inglese...
+function sgamolla() {
+  for (let i = 1; i < snake.length; i++) {
+    snake[i].x += (Math.random() - 0.5) * 0.25; // ±0.25 celle
+    snake[i].y += (Math.random() - 0.5) * 0.25;
+  }
+}
+
+function drawAll() {
+  //clear
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  //scacchiera
+  drawBackground();
+  
+  //mela
+  for (let i = 0; i < apples.length; i++) {
+    apples[i].type === 1 ? drawBanana(apples[i]) : drawApple(apples[i]);
+  }
+  
+  //bombette
+  for (let i = 0; i < bombs.length; i++) {
+    bombs[i].type === 1 ? drawGrenade(bombs[i]) : drawBomb(bombs[i]);
+  }
+  
+  //veleni
+  for (let i = 0; i < poisons.length; i++) {
+    poisons[i].type === 1 ? drawMushroom(poisons[i]) : drawPoison(poisons[i]);
+  }
+  
+  //corpo
+  for (let i = 1; i < snake.length; i++) {
+    //console.log('B '+i+' >> '+snake[i].x+' '+snake[i].y);
+    drawSegment(snake[i], snake[i - 1], i == snake.length - 1);
+  }
+  
+  //testa
+  //console.log('H '+0+' >> '+snake[0].x+' '+snake[0].y);
+  drawHead(snake[0], dir);
+}
+
+//let inter = setInterval(tick, 200);
+
+
+
+// loop fluido con interpolazione testa
+let lastTime = 0;
+const moveDelay = 200;
+let moveTimer = 0;
+
+function gameLoop(timestamp) {
+  if (!alive) return;
+  const delta = timestamp - lastTime;
+  lastTime = timestamp;
+  moveTimer += delta;
+
+  // passo logico
+  if (moveTimer >= moveDelay) {
+    moveTimer -= moveDelay;
+    tick();
+  }
+
+  const t = moveTimer / moveDelay;
+
+  //clear
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  //scacchiera
+  drawBackground();
+  
+  //mela
+  for (let i = 0; i < apples.length; i++) {
+    apples[i].type == 1 ? drawBanana(apples[i]) : drawApple(apples[i]);
+  }
+  
+  //bombette = morte
+  for (let i = 0; i < bombs.length; i++) {
+    bombs[i].type === 1 ? drawGrenade(bombs[i]) : drawBomb(bombs[i]);
+  }
+    
+  //veleni = reset serpente
+  for (let i = 0; i < poisons.length; i++) {
+    poisons[i].type === 1 ? drawMushroom(poisons[i]) : drawPoison(poisons[i]);
+  }
+  
+
+  //console.log('t='+t+' snake=',snake);
+    
+  //corpo
+  for (let i = 1; i < snake.length; i++) {
+    drawSegment(snake[i], snake[i-1], i === snake.length - 1);
+  }
+
+  // testa
+  const headDeltaX = snake[0].x - snake[0].oldX;
+  const headDeltaY = snake[0].y - snake[0].oldY;
+  // limita la testa all'interno dei bordi
+  const headPos = {
+    x: Math.min(Math.max(snake[0].x + headDeltaX * t, padding / 2), cols - 1 - padding / 2),
+    y: Math.min(Math.max(snake[0].y + headDeltaY * t, padding / 2), rows - 1 - padding / 2)
+  };
+  /*const headPos = {
+	x: snake[0].x + (snake[0].x - snake[0].oldX) * t, 
+	y: snake[0].y + (snake[0].y - snake[0].oldY) * t};*/
+  const headDir = {
+    x:(snake[0].x - snake[0].oldX), 
+	y:(snake[0].y - snake[0].oldY)
+  }
+  drawHead(headPos, headDir, snake[0]);
+
+  requestAnimationFrame(gameLoop);
+}
+
+requestAnimationFrame(gameLoop);
+
+function reset() {
+  snake = [ { x: 10, y: 10, oldX: 9, oldY: 10 } ];
+  dir = { x: 1, y: 0 };
+  apples = [ { x: 5, y: 5, type: 0 } ];
+  bombs = [];
+  poisons = [];
+  snakeMinLength = 4;
+  bananaGrow = 0;
+  poisonEffect = 0;
+  
+  alive = true;
+  lastTime = performance.now();
+  moveTimer = 0;
+
+  requestAnimationFrame(gameLoop);
+}
+</script>
+</body>
+</html>
