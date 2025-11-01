@@ -13,14 +13,29 @@
     justify-content: center;
     height: 100vh;
 	overflow: hidden;
+	gap: 8px;
   }
   canvas {
-    border: 4px solid #33cc33;
+    border: 4px solid #3c3;
 	padding: 8px;
+  }
+  h1 {
+    color: #fff;
+    border: 4px solid #3c3;
+    margin: 0;
+	padding: 8px;
+    writing-mode: vertical-lr;
+    text-orientation: upright;
+    font-family: sans-serif;
+    height: 500px;
+    font-size: 20px;
+    overflow: hidden;
+    white-space: nowrap;
   }
 </style>
 </head>
 <body>
+  <h1>NIBBLES / SNAKE CLONE</h1>
   <canvas id="game" width="500" height="500"></canvas>
   <canvas id="stats" width="140" height="500"></canvas>
 <script>
