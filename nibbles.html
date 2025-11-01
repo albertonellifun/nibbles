@@ -55,6 +55,7 @@ let bananaGrow = 0;//quando settato il serpente creeesce
 let poisonEffect = 0;//quando settato il serpente e' stupefacente :)
 let skeletorFactor = 1;//fattore di magrezza, default = 1
 let burgerFactor = 1;//fattore di ciccionosita' dei segmenti
+let hasCrown = false;//chi e' lo re? ATTILA!
 
 let snake = [ { x: 10, y: 10, oldX: 9, oldY: 10 } ];
 
@@ -284,6 +285,83 @@ function drawHead(ctx, curr, dir, neck) {
       ctx.fillRect(ex2 - noseWidth / 2, ey2 - eyeSize * 2 - noseHeight, noseWidth, noseHeight);
     }
     ctx.stroke();
+  }
+  
+  //corona
+  if (hasCrown) {
+    const crownWidth = cell * 1.2;
+    const crownHeight = cell * 0.9;
+    let crownX = cx;
+	let crownY = cy;
+  
+    // Posiziona la corona sopra la testa, dietro la direzione
+    if (dir.y === 1) crownY = cy - cell / 2.2 - crownHeight / 2; // guarda su
+    else if (dir.y === -1) crownY = cy + cell / 2.2 + crownHeight / 2; // guarda giù
+    else if (dir.x === 1) crownX = cx - cell / 2.2 - crownHeight / 2; // guarda destra
+    else if (dir.x === -1) crownX = cx + cell / 2.2 + crownHeight / 2; // guarda sinistra
+  
+    ctx.save();
+    ctx.translate(crownX, crownY);
+    if (dir.x === -1) ctx.rotate(Math.PI / 2);
+    else if (dir.x === 1) ctx.rotate(-Math.PI / 2);
+    else if (dir.y === -1) ctx.rotate(Math.PI);
+  
+    // --- FASCIA: trapezio rovesciato ---
+    const baseTop = crownWidth;
+    const baseBottom = crownWidth * 0.6;
+    const height = crownHeight * 0.5;
+  
+    ctx.fillStyle = "#FFD700"; // oro
+    ctx.strokeStyle = "#B8860B";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(-baseBottom / 2, height / 2);
+    ctx.lineTo(baseBottom / 2, height / 2);
+    ctx.lineTo(baseTop / 2, -height / 2);
+    ctx.lineTo(-baseTop / 2, -height / 2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  
+    // --- PUNTE ---
+    const tipHeight = crownHeight * 0.4;
+    const tipPositions = [
+      -baseTop / 3, // sinistra
+      0,            // centro
+      baseTop / 3   // destra
+    ];
+  
+    ctx.beginPath();
+    for (let i = 0; i < tipPositions.length; i++) {
+      const x = tipPositions[i];
+      const tipBaseY = -height / 2;
+      ctx.moveTo(x - baseTop / 6, tipBaseY);
+      ctx.lineTo(x, tipBaseY - tipHeight);
+      ctx.lineTo(x + baseTop / 6, tipBaseY);
+      ctx.closePath();
+    }
+    ctx.fill();
+    ctx.stroke();
+  
+    // --- GEMME sulle punte ---
+    const gemColors = ["#f00", "#0f0", "#00f"];
+    const gemRadius = crownWidth * 0.07;
+    for (let i = 0; i < tipPositions.length; i++) {
+      const x = tipPositions[i];
+      const y = -height / 2 - tipHeight;
+      ctx.fillStyle = gemColors[i];
+      ctx.beginPath();
+      ctx.arc(x, y - gemRadius * 0.6, gemRadius, 0, Math.PI * 2);
+      ctx.fill();
+  
+      // riflesso bianco
+      ctx.fillStyle = "rgba(255,255,255,0.6)";
+      ctx.beginPath();
+      ctx.arc(x - gemRadius / 3, y - gemRadius, gemRadius / 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  
+    ctx.restore();
   }
 }
 
@@ -1254,6 +1332,8 @@ function drawStatsArray(ctx, canvas) {
 	ctx.fillStyle = COLORS.white;
     ctx.fillText(statsArray[type], fakeObj.x * cell + 2.5 * cell, fakeObj.y * cell + cell / 2);
 	total+=statsArray[type];
+	if (total > 50) hasCrown = true; 
+	else hasCrown = false;
   }
   ctx.fillStyle = COLORS.white;
   fakeObj = {x:0, y:18+4};
