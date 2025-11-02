@@ -14,23 +14,24 @@
     height: 100vh;
 	overflow: hidden;
 	gap: 8px;
-  }
-  canvas {
-    border: 4px solid #3c3;
-	padding: 8px;
+	margin: 0;
   }
   h1 {
     color: #fff;
-    border: 4px solid #3c3;
     margin: 0;
-	padding: 8px;
-    writing-mode: vertical-lr;
+	writing-mode: vertical-lr;
     text-orientation: upright;
     font-family: sans-serif;
     height: 500px;
     font-size: 20px;
+	font-size: clamp(8px, 2.5vh, 32px);
     overflow: hidden;
     white-space: nowrap;
+  }
+  canvas, h1 {
+    height: 90vh;
+	border: 4px solid #3c3;
+	padding: 8px;
   }
 </style>
 </head>
@@ -56,6 +57,7 @@ let poisonEffect = 0;//quando settato il serpente e' stupefacente :)
 let skeletorFactor = 1;//fattore di magrezza, default = 1
 let burgerFactor = 1;//fattore di ciccionosita' dei segmenti
 let hasCrown = false;//chi e' lo re? ATTILA!
+let godmodeEffect = 0;//quando settato il serpente attraversa i muri
 
 let snake = [ { x: 10, y: 10, oldX: 9, oldY: 10 } ];
 
@@ -76,13 +78,15 @@ const COLORS = {
 	snakeLight2:'#85f', snakeDark2:'#44c', //violet
 	snakeLight3:'#860', snakeDark3:'#640', //brown
 	snakeLight4:'#ccc', snakeDark4:'#aaa', //skeletor
-	snaleLight5:'#f7b', snakeDark5:'#a37', //ciccione
+	snakeLight5:'#f7b', snakeDark5:'#a37', //ciccione
+	snakeLight6:'#ff5', snakeDark6:'#aa0', //godmode
 	backgroundLight0:'#420', backgroundDark0:'#200', backgroundBorder0:'#640', 
 	backgroundLight1:'#024', backgroundDark1:'#002', backgroundBorder1:'#046',
 	backgroundLight2:'#240', backgroundDark2:'#020', backgroundBorder2:'#460',
 	backgroundLight3:'#444', backgroundDark3:'#222', backgroundBorder3:'#666',
 	backgroundLight4:'#620', backgroundDark4:'#000', backgroundBorder4:'#b60',
 	backgroundLight5:'#024', backgroundDark5:'#400', backgroundBorder5:'#fff',
+	backgroundLight6:'#024', backgroundDark6:'#002', backgroundBorder6:'#009',
 	brown:'#640',
 	red:'#f00',
 	white:'#fff',				 
@@ -451,7 +455,7 @@ function drawPumpkin(ctx, pumpkin) {
   ctx.fillStyle = COLORS.darkGray;
   const eyeOffsetX = r * 0.35;
   const eyeOffsetY = r * 0.15;
-  const eyeSize = r * 0.25;
+  const eyeSize = r * 0.35;
 
   // occhi
   ctx.beginPath();
@@ -484,6 +488,7 @@ function drawPumpkin(ctx, pumpkin) {
   ctx.closePath();
   ctx.fill();
 }
+
 
 
 //bombetta
@@ -924,6 +929,58 @@ function drawPoison(ctx, poison) {
 
 
 
+//ciliegie
+function drawCherries(ctx, fruit) {
+  const cx = fruit.x * cell + cell / 2;
+  const cy = fruit.y * cell + cell / 2;
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.scale(cell / 20, cell / 20); // scala proporzionale per qualsiasi cella
+
+  // ---- CILIEGIE ----
+  ctx.fillStyle = '#ff0000';
+  // sinistra
+  ctx.beginPath();
+  ctx.arc(-4, 4, 4, 0, Math.PI * 2);
+  ctx.fill();
+  // destra
+  ctx.beginPath();
+  ctx.arc(4, 4, 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  // ---- GAMBI ----
+  ctx.strokeStyle = '#00aa00';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(-4, 0);
+  ctx.lineTo(0, -6);
+  ctx.lineTo(4, 0);
+  ctx.stroke();
+
+  // ---- FOGLIA ----
+  ctx.fillStyle = '#00cc00';
+  ctx.beginPath();
+  ctx.moveTo(0, -6);
+  ctx.quadraticCurveTo(2, -8, 0, -10);
+  ctx.quadraticCurveTo(-2, -8, 0, -6);
+  ctx.fill();
+
+  // ---- RIFLESSI (bianco puro, semplici) ----
+  ctx.fillStyle = '#ffffff';
+  // riflesso sinistra
+  ctx.beginPath();
+  ctx.arc(-5.2, 2.2, 1.2, 0, Math.PI * 2);
+  ctx.fill();
+  // riflesso destra
+  ctx.beginPath();
+  ctx.arc(2.8, 2.2, 1.2, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+
 
 //banana!!!
 function drawBanana(ctx, banana) {
@@ -976,10 +1033,9 @@ function checkWallCollision(head) {
     return true;
   if (head.y < padding || head.y >= (rows - padding))
     return true;
-	
+  	
   return checkSameCell(head, snake, 0);
 }
-
 
 
 //controlla l'array cella (x,y) vuota e distante da altre celle
@@ -1086,10 +1142,15 @@ function tick() {
   
   //controlla collisioni
   let isWallCollision = checkWallCollision(newHead);
-  if (isWallCollision) {
+  if (isWallCollision && godmodeEffect === 0) {
     alive = false;
 	alert('Game Over!');
 	return;
+  } else {
+    if(newHead.x === 0) newHead.x = cols - 2;
+	if(newHead.y === 0) newHead.y = rows - 2;
+	if(newHead.x === cols - 1) newHead.x = 1;
+	if(newHead.y === rows - 1) newHead.y = 1;
   }
   
   //aggiunge la testa in testa :-)
@@ -1114,15 +1175,16 @@ function tick() {
 		//aggiungi oggetti random: bombette a volonta' + un po' di mele multiple + banane rare
 	    let objectType = (Math.random() * 100) | 0;
 		let type = 0;
-		     if (objectType > 10 && objectType < 20) type = 0; // altra mela
-		else if (objectType > 20 && objectType < 30) type = 1; // banana
-		else if (objectType > 30 && objectType < 40) type = 2; // funghetto
-		else if (objectType > 40 && objectType < 50) type = 3; // veleno
-		else if (objectType > 50 && objectType < 60) type = 4; // granatina
-		else if (objectType > 60 && objectType < 70) type = 5; // bombetta
-		else if (objectType > 70 && objectType < 80) type = 6; // halloween
-		else if (objectType > 80 && objectType < 90) type = 7; // cocomero
-		else if (objectType > 90 && objectType <=99) type = 8; // burger king
+	         if (objectType >= 0 && objectType < 5) type = 0; // altra mela
+		else if (objectType > 10 && objectType < 15) type = 1; // banana
+		else if (objectType > 20 && objectType < 25) type = 2; // fungo
+		else if (objectType > 30 && objectType < 35) type = 3; // veleno
+		else if (objectType > 40 && objectType < 45) type = 4; // granata
+		else if (objectType > 50 && objectType < 55) type = 5; // bomba
+		else if (objectType > 60 && objectType < 65) type = 6; // zucca
+		else if (objectType > 70 && objectType < 75) type = 7; // cocomero
+		else if (objectType > 80 && objectType < 85) type = 8; // paninazzo
+		else if (objectType > 90 && objectType < 95) type = 9; // ciliegie
 		spawnObject(apples, type);
 	  } else if (apples[i].type === 1) { 
 	    //banana!!!
@@ -1194,6 +1256,15 @@ function tick() {
 		currentSnakePattern = 5;
 	    snakePattern = createSnakePattern(gameCtx);
 		statsArray[8]++;
+	  }	else if (apples[i].type === 9) {
+	    //burger king
+		apples.splice(i, 1);//rimuove l'elemento i dall'array
+		
+		//effetti collaterali...
+		currentSnakePattern = 6;
+	    snakePattern = createSnakePattern(gameCtx);
+		statsArray[9]++;
+		godmodeEffect = 60;
 	  }	
     }
   }
@@ -1239,6 +1310,14 @@ function tick() {
 	}
   }
   
+  //gestisce godmodeEffect
+  if (godmodeEffect > 0) {
+    godmodeEffect--;
+	if (godmodeEffect === 0) {
+	  currentSnakePattern = 0;
+	  snakePattern = createSnakePattern(gameCtx);
+	}
+  }
   
   if (!(eatApple || bananaGrow)) {
     //toglie la coda
@@ -1285,6 +1364,7 @@ function drawAll() {
 	  case 6: drawPumpkin(gameCtx, apples[i]); break;
 	  case 7: drawWatermelon(gameCtx, apples[i]); break;
 	  case 8: drawBurger(gameCtx, apples[i]); break;
+	  case 9: drawCherries(gameCtx, apples[i]); break;
 	}
   }
   
@@ -1311,13 +1391,13 @@ function drawStatsArray(ctx, canvas) {
   ctx.font = `${Math.max(8, cell * 0.5)}px sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  let fakeObj = {x:0, y:2};
+  let fakeObj = {x:0, y:1};
   ctx.fillStyle = COLORS.white;
   ctx.fillText('STATS:', fakeObj.x * cell + 2.5 * cell, fakeObj.y * cell + cell / 2);
   
   let total = 0;
-  for (let type = 0; type < 9; type++) {
-    fakeObj = {x:2, y:(type*2)+4};
+  for (let type = 0; type < 10; type++) {
+    fakeObj = {x:2, y:(type*2)+3};
     switch(type) {
 	  case 0: drawApple(ctx, fakeObj); break;
 	  case 1: drawBanana(ctx, fakeObj); break;
@@ -1328,6 +1408,7 @@ function drawStatsArray(ctx, canvas) {
 	  case 6: drawPumpkin(ctx, fakeObj); break;
 	  case 7: drawWatermelon(ctx, fakeObj); break;
 	  case 8: drawBurger(ctx, fakeObj); break;
+	  case 9: drawCherries(ctx, fakeObj); break;
 	}
 	ctx.fillStyle = COLORS.white;
     ctx.fillText(statsArray[type], fakeObj.x * cell + 2.5 * cell, fakeObj.y * cell + cell / 2);
@@ -1336,9 +1417,9 @@ function drawStatsArray(ctx, canvas) {
 	else hasCrown = false;
   }
   ctx.fillStyle = COLORS.white;
-  fakeObj = {x:0, y:18+4};
+  fakeObj = {x:0, y:20+3};
   ctx.fillText('TOTAL: ', fakeObj.x * cell + 2.5 * cell, fakeObj.y * cell + cell / 2);
-  fakeObj = {x:2, y:18+4};
+  fakeObj = {x:2, y:20+3};
   ctx.fillText(total, fakeObj.x * cell + 2.5 * cell, fakeObj.y * cell + cell / 2);
   drawStats = false;
 }
@@ -1381,6 +1462,7 @@ function gameLoop(timestamp) {
 	  case 6: drawPumpkin(gameCtx, apples[i]); break;
 	  case 7: drawWatermelon(gameCtx, apples[i]); break;
 	  case 8: drawBurger(gameCtx, apples[i]); break;
+	  case 9: drawCherries(gameCtx, apples[i]); break;
 	}
   }
   
@@ -1425,6 +1507,7 @@ function reset() {
   poisonEffect = 0;
   skeletorFactor = 1;
   burgerFactor = 1;
+  godmodeEffect = 0;
 
   currentSnakePattern = 0;
   snakePattern = createSnakePattern(gameCtx);
