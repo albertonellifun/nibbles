@@ -1103,6 +1103,11 @@ document.addEventListener('keydown', e => {
     reset();
     return;
   }
+  
+  if (e.key === 'F' || e.key === 'f') {
+    isFps = !isFps;
+	return;
+  }
 
   if (newDir) {
     const lastDir = inputQueue.length > 0 ? inputQueue[inputQueue.length - 1] : dir;
@@ -1495,8 +1500,28 @@ function gameLoop(timestamp) {
 
   if (redrawStats) drawStatsArray(statsCtx, statsCanvas);
 
+
+  //fps
+  if(isFps) {
+    fps = (1000 / delta) | 0;
+    if (fps < minFps && fps > 2) minFps = fps;
+    statsCtx.fillStyle = COLORS.white;
+    statsCtx.font = '10px monospace';
+	statsCtx.textAlign = 'left';
+    statsCtx.fillText(`FPS: ${fps} - min: ${minFps}`, 2, 10);
+    lastTime = timestamp;
+  }
+
+
+
   requestAnimationFrame(gameLoop);
 }
+
+let fps = 0;
+let isFps = false;
+let minFps = 9999;
+
+
 
 requestAnimationFrame(gameLoop);
 
