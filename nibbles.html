@@ -161,13 +161,15 @@ function drawSegment(ctx, curr, prev, isLast) {
   //raccordo col segmento precedente per evitare spazi
   const nx = prev.x * cell + cell / 2;
   const ny = prev.y * cell + cell / 2;
-  ctx.beginPath();
-  ctx.moveTo(px, py);
-  ctx.lineTo(nx, ny);
-  ctx.lineWidth = (cell * skeletorFactor) - 2;
-  ctx.strokeStyle = snakePattern;
-  ctx.stroke();
-  
+  //fix godmode -> se passo attraverso i muri, non devo disegnare i collegamenti
+  if (Math.abs(curr.x - prev.x) < 3 && Math.abs(curr.y - prev.y) < 3) {
+    ctx.beginPath();
+    ctx.moveTo(px, py);
+    ctx.lineTo(nx, ny);
+    ctx.lineWidth = (cell * skeletorFactor) - 2;
+    ctx.strokeStyle = snakePattern;
+    ctx.stroke();
+  }
   ctx.restore();
 }
 
