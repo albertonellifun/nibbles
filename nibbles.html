@@ -1174,7 +1174,7 @@ function tick() {
 		
 		//aggiungi oggetti random: bombette a volonta' + un po' di mele multiple + banane rare
 	    let objectType = (Math.random() * 100) | 0;
-		let type = 0;
+		let type = -1;
 	         if (objectType >= 0 && objectType < 5) type = 0; // altra mela
 		else if (objectType > 10 && objectType < 15) type = 1; // banana
 		else if (objectType > 20 && objectType < 25) type = 2; // fungo
@@ -1185,7 +1185,7 @@ function tick() {
 		else if (objectType > 70 && objectType < 75) type = 7; // cocomero
 		else if (objectType > 80 && objectType < 85) type = 8; // paninazzo
 		else if (objectType > 90 && objectType < 95) type = 9; // ciliegie
-		spawnObject(apples, type);
+		if (type !== -1) spawnObject(apples, type);
 	  } else if (apples[i].type === 1) { 
 	    //banana!!!
 		apples.splice(i, 1);//rimuove l'elemento i dall'array
