@@ -71,6 +71,8 @@ let apples = [ { x: 5, y: 5, type: 0 } ];//serpente cresce/si droga/muore
 let alive = true;
 let snakeMinLength = 4;
 
+let message = [];
+
 let currentSnakePattern = 0;
 const COLORS = {
 	snakeLight0:'#8f5', snakeDark0:'#4c4', //green
@@ -85,7 +87,7 @@ const COLORS = {
 	backgroundLight2:'#240', backgroundDark2:'#020', backgroundBorder2:'#460',
 	backgroundLight3:'#444', backgroundDark3:'#222', backgroundBorder3:'#666',
 	backgroundLight4:'#620', backgroundDark4:'#000', backgroundBorder4:'#b60',
-	backgroundLight5:'#024', backgroundDark5:'#400', backgroundBorder5:'#fff',
+	backgroundLight5:'#024', backgroundDark5:'#400', backgroundBorder5:'#f7b',
 	backgroundLight6:'#024', backgroundDark6:'#002', backgroundBorder6:'#009',
 	brown:'#640',
 	red:'#f00',
@@ -131,7 +133,7 @@ function drawSegment(ctx, curr, prev, isLast) {
     ctx.beginPath();
     ctx.arc(px, py, burgerFactor * cell / 2 - 2, 0, Math.PI * 2);
     ctx.fill();
-	ctx.stroke();
+    ctx.stroke();
   } else {
     //ultimo segmento == coda
     const steps = 4;//mini-cerchi a stringere
@@ -227,7 +229,7 @@ function drawHead(ctx, curr, dir, neck) {
 	if (dist < distanceAppleSnake) distanceAppleSnake = dist;
   }
   
-  if(distanceAppleSnake < 4) {
+  if(distanceAppleSnake <= 3) {
     //bocca rossa + grande se vicina alla mela
     const mounthSize = cell / ( Math.max(distanceAppleSnake, 3));
 	
@@ -245,7 +247,7 @@ function drawHead(ctx, curr, dir, neck) {
     ctx.fill();
   } else {
     //linguetta biforcuta + narici
-    const tongueLength = cell / 10;//distanceAppleSnake/20;
+    const tongueLength = cell / 10;//distanceAppleSnake;
 	const noseWidth = cell / 12;
     const noseHeight = cell / 12;
 	
@@ -1108,6 +1110,12 @@ document.addEventListener('keydown', e => {
     isFps = !isFps;
 	return;
   }
+  
+  if (e.key >= '0' && e.key <= '9') {
+    spawnObject(apples, Number(e.key)); 
+	return; 
+  }
+
 
   if (newDir) {
     const lastDir = inputQueue.length > 0 ? inputQueue[inputQueue.length - 1] : dir;
@@ -1154,10 +1162,10 @@ function tick() {
 	alert('Game Over!');
 	return;
   } else {
-    if(newHead.x === 0) newHead.x = cols - 2;
-	if(newHead.y === 0) newHead.y = rows - 2;
-	if(newHead.x === cols - 1) newHead.x = 1;
-	if(newHead.y === rows - 1) newHead.y = 1;
+    if(newHead.x === 0) newHead.x = cols - (padding * 2);
+	if(newHead.y === 0) newHead.y = rows - (padding * 2);
+	if(newHead.x === (cols - padding)) newHead.x = padding;
+	if(newHead.y === (rows - padding)) newHead.y = padding;
   }
   
   //aggiunge la testa in testa :-)
@@ -1199,16 +1207,16 @@ function tick() {
 		
 		//effetti collaterali...
 	  	bananaGrow = 8;
-		currentSnakePattern = (currentSnakePattern+1) % 4;
-	    snakePattern = createSnakePattern(gameCtx);
 		statsArray[1]++;
+		message.push({msg:'BANANA GROW!',dat:Date.now()});
 	  } else if (apples[i].type === 2) {
-	    //poison
+	    //fungo
 		apples.splice(i, 1);//rimuove l'elemento i dall'array
 		
 		//effetti collaterali...
 		poisonEffect = 30;
 		statsArray[2]++;
+		message.push({msg:'POISONED!',dat:Date.now()});
 	  } else if (apples[i].type === 3) {
 	    //poison
 		apples.splice(i, 1);//rimuove l'elemento i dall'array
@@ -1216,24 +1224,35 @@ function tick() {
 		//effetti collaterali...
 		poisonEffect = 60;
 		statsArray[3]++;
+		message.push({msg:'SUPER-POISONED!',dat:Date.now()});
 	  } else if (apples[i].type === 4) {
 	    //bombetta/granata
 		apples.splice(i, 1);//rimuove l'elemento i dall'array
 		
 		//effetti collaterali...
-		alive = false;
 		statsArray[4]++;
-		alert('Game Over!');
-		return;
+		message.push({msg:'KA-BOOM!',dat:Date.now()});
+		if (godmodeEffect === 0) { 
+          alive = false;		
+		  alert('Game Over!');
+		  return; 
+		} else {
+		  eatApple = true;
+		}
 	  } else if (apples[i].type === 5) {
 	    //bombetta/granata
 		apples.splice(i, 1);//rimuove l'elemento i dall'array
 		
 		//effetti collaterali...
-		alive = false;
 		statsArray[5]++;
-		alert('Game Over!');
-		return;
+		message.push({msg:'OUCH!',dat:Date.now()});
+		if (godmodeEffect === 0) {
+		  alive = false;
+		  alert('Game Over!');
+		  return;
+		} else {
+		  eatApple = true;
+		}
 	  } else if (apples[i].type === 6) {
 	    //skeletor
 		apples.splice(i, 1);//rimuove l'elemento i dall'array
@@ -1241,18 +1260,16 @@ function tick() {
 		//effetti collaterali...
 		skeletorFactor = 0.1;
 		burgerFactor = 1;
-		currentSnakePattern = 4;
-	    snakePattern = createSnakePattern(gameCtx);
 		statsArray[6]++;
+		message.push({msg:'HALLOWEEN MODE!',dat:Date.now()});
 	  } else if (apples[i].type === 7) {
 	    //cocomero
 		apples.splice(i, 1);//rimuove l'elemento i dall'array
 		
 		//effetti collaterali...
 	  	bananaGrow = 16;
-		currentSnakePattern = (currentSnakePattern+1) % 4;
-	    snakePattern = createSnakePattern(gameCtx);
 		statsArray[7]++;
+		message.push({msg:'WATERMELON GROW!',dat:Date.now()});
 	  }	else if (apples[i].type === 8) {
 	    //burger king
 		apples.splice(i, 1);//rimuove l'elemento i dall'array
@@ -1260,18 +1277,16 @@ function tick() {
 		//effetti collaterali...
 		skeletorFactor = 1;
 		burgerFactor = 2;
-		currentSnakePattern = 5;
-	    snakePattern = createSnakePattern(gameCtx);
 		statsArray[8]++;
+		message.push({msg:'BURGER KING MODE!',dat:Date.now()});
 	  }	else if (apples[i].type === 9) {
-	    //burger king
+	    //ciliegie
 		apples.splice(i, 1);//rimuove l'elemento i dall'array
 		
 		//effetti collaterali...
-		currentSnakePattern = 6;
-	    snakePattern = createSnakePattern(gameCtx);
 		statsArray[9]++;
 		godmodeEffect = 60;
+		message.push({msg:'BWUAHUHA... GOD MODE!',dat:Date.now()});
 	  }	
     }
   }
@@ -1279,6 +1294,8 @@ function tick() {
   //gestisce skeletrazzi
   if (skeletorFactor < 1) {
     skeletorFactor += 0.025;
+	currentSnakePattern = 4;
+	snakePattern = createSnakePattern(gameCtx);
 	if (skeletorFactor > 1) {
 	  skeletorFactor = 1;
 	  currentSnakePattern = 0;
@@ -1289,6 +1306,8 @@ function tick() {
   //gestisce cicciazza
   if (burgerFactor > 1) {
     burgerFactor -= 0.025;
+	currentSnakePattern = 5;
+	snakePattern = createSnakePattern(gameCtx);
 	if (burgerFactor < 1) {
 	  burgerFactor = 1;
 	  currentSnakePattern = 0;
@@ -1320,6 +1339,8 @@ function tick() {
   //gestisce godmodeEffect
   if (godmodeEffect > 0) {
     godmodeEffect--;
+	currentSnakePattern = 6;
+	snakePattern = createSnakePattern(gameCtx);
 	if (godmodeEffect === 0) {
 	  currentSnakePattern = 0;
 	  snakePattern = createSnakePattern(gameCtx);
@@ -1337,7 +1358,6 @@ function tick() {
   if (!canSpawn) {
     //svuota la griglia
 	apples = [ { x: 5, y: 5, type: 0 } ];
-
   }
   
   //DISEGNA!!!
@@ -1512,6 +1532,16 @@ function gameLoop(timestamp) {
     lastTime = timestamp;
   }
 
+  if (message.length) {
+    gameCtx.fillStyle = COLORS.white;
+    gameCtx.font = '10px monospace';
+	gameCtx.textAlign = 'left';
+	const fiveSecondsAgo = Date.now() - 5000;
+    message = message.filter(e => e.dat >= fiveSecondsAgo);
+	let messages = message.map(e => e.msg).join(' >>> ');
+	
+	gameCtx.fillText('>>> ' + messages, 2, 10);	
+  }
 
 
   requestAnimationFrame(gameLoop);
