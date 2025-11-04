@@ -70,6 +70,7 @@ let inputQueue = [];
 let apples = [ { x: 5, y: 5, type: 0 } ];//serpente cresce/si droga/muore
 let alive = true;
 let snakeMinLength = 4;
+let applesEaten = [];
 
 let message = [];
 
@@ -131,7 +132,22 @@ function drawSegment(ctx, curr, prev, isLast) {
   if (!isLast) {
     //segmento normale
     ctx.beginPath();
-    ctx.arc(px, py, burgerFactor * cell / 2 - 2, 0, Math.PI * 2);
+	
+    let eatenIdx = burgerFactor !== 1 ? -1 : applesEaten.findIndex(elem => Math.abs(elem.x - curr.x) < 0.51 && Math.abs(elem.y - curr.y) < 0.51);
+	if (eatenIdx !== -1) {
+	  let maxAge = 3000;
+	  let age = Date.now() - applesEaten[eatenIdx].when;//delta in ms
+	  if (age > maxAge) {
+	    applesEaten.splice(eatenIdx, 1);
+		ctx.arc(px, py, burgerFactor * cell / 2 - 2, 0, Math.PI * 2);
+      }
+	  else {
+  	    ctx.arc(px, py, (1.5 - age/(maxAge * 1.5)) * cell / 2 - 2, 0, Math.PI * 2);
+	  }
+	}
+	else {
+      ctx.arc(px, py, burgerFactor * cell / 2 - 2, 0, Math.PI * 2);
+	}
     ctx.fill();
     ctx.stroke();
   } else {
@@ -455,40 +471,36 @@ function drawPumpkin(ctx, pumpkin) {
   ctx.closePath();
   ctx.fill();
 
+
   // faccina (jack-o’-lantern) – occhi triangolari + bocca a zig-zag
-  ctx.fillStyle = COLORS.darkGray;
-  const eyeOffsetX = r * 0.35;
+  ctx.fillStyle = COLORS.black;
+  const eyeOffsetX = r * 0.3;
   const eyeOffsetY = r * 0.15;
-  const eyeSize = r * 0.35;
+  const eyeSize = r * 0.25;
 
   // occhi
   ctx.beginPath();
-  ctx.moveTo(cx - eyeOffsetX - eyeSize/2, cy - eyeOffsetY);
-  ctx.lineTo(cx - eyeOffsetX + eyeSize/2, cy - eyeOffsetY - eyeSize);
-  ctx.lineTo(cx - eyeOffsetX + eyeSize/2, cy - eyeOffsetY + eyeSize/2);
+  ctx.moveTo(cx + eyeOffsetX - eyeSize, cy - eyeOffsetY + eyeSize / 3);
+  ctx.lineTo(cx + eyeOffsetX + eyeSize, cy - eyeOffsetY - eyeSize);
+  ctx.lineTo(cx + eyeOffsetX + eyeSize, cy - eyeOffsetY + eyeSize / 2);
   ctx.closePath();
   ctx.fill();
 
   ctx.beginPath();
-  ctx.moveTo(cx + eyeOffsetX + eyeSize/2, cy - eyeOffsetY);
-  ctx.lineTo(cx + eyeOffsetX - eyeSize/2, cy - eyeOffsetY - eyeSize);
-  ctx.lineTo(cx + eyeOffsetX - eyeSize/2, cy - eyeOffsetY + eyeSize/2);
+  ctx.moveTo(cx - eyeOffsetX + eyeSize, cy - eyeOffsetY + eyeSize / 3);
+  ctx.lineTo(cx - eyeOffsetX - eyeSize, cy - eyeOffsetY - eyeSize);
+  ctx.lineTo(cx - eyeOffsetX - eyeSize, cy - eyeOffsetY + eyeSize / 2);
   ctx.closePath();
   ctx.fill();
 
   // bocca a zig-zag (tipo sorriso spaventoso)
   ctx.beginPath();
-  const mouthY = cy + r * 0.25;
-  const mouthW = r * 0.8;
-  const mouthH = r * 0.25;
-  const teeth = 5;
-  const step = mouthW / teeth;
+  const mouthY = cy + r * 0.35;
+  const mouthW = r * 0.9;
+  const mouthH = r * 0.5;
   ctx.moveTo(cx - mouthW / 2, mouthY);
-  for (let i = 1; i <= teeth; i++) {
-    const dir = i % 2 === 0 ? 1 : -1;
-    ctx.lineTo(cx - mouthW / 2 + i * step, mouthY + dir * mouthH * 0.4);
-  }
-  ctx.lineTo(cx + mouthW / 2, mouthY);
+  ctx.quadraticCurveTo(cx, mouthY + mouthH * 0.3, cx + mouthW / 2, mouthY);
+  ctx.quadraticCurveTo(cx, mouthY + mouthH, cx - mouthW / 2, mouthY);
   ctx.closePath();
   ctx.fill();
 }
@@ -504,8 +516,8 @@ function drawBomb(ctx, bomb) {
   // corpo scuro con gradiente metallico
   const grad = ctx.createRadialGradient(cx - r/4, cy - r/4, r/8, cx, cy, r);
   grad.addColorStop(0, COLORS.lightGray);//leggero highlight centrale
-  grad.addColorStop(0.5, COLORS.medGray);
-  grad.addColorStop(1, COLORS.darkGray);
+  grad.addColorStop(0.25, COLORS.medGray);
+  grad.addColorStop(1, COLORS.black);//COLORS.darkGray);
   ctx.fillStyle = grad;
 
   ctx.beginPath();
@@ -755,29 +767,25 @@ function drawWatermelon(ctx, slice) {
   ctx.fill();
   ctx.closePath();
 
-  // ---- BUCCIA VERDE ----
+  //buccia verde
   ctx.beginPath();
   ctx.moveTo(-r, 0);
   ctx.arc(0, 0, r * 1.1, Math.PI, 0, false);
   ctx.arc(0, 0, r * 1.02, 0, Math.PI, true);
   ctx.closePath();
-
-  const greenGrad = ctx.createLinearGradient(0, -r, 0, r);
-  greenGrad.addColorStop(0, '#2ecc71');
-  greenGrad.addColorStop(1, '#145a32');
-  ctx.fillStyle = greenGrad;
+  ctx.fillStyle = COLORS.medGreen;
   ctx.fill();
 
-  // ---- PARTE BIANCA ----
+  //bianco
   ctx.beginPath();
   ctx.moveTo(-r, 0);
   ctx.arc(0, 0, r * 1.02, Math.PI, 0, false);
   ctx.arc(0, 0, r * 0.9, 0, Math.PI, true);
   ctx.closePath();
-  ctx.fillStyle = '#f8f8f0';
+  ctx.fillStyle = COLORS.white;
   ctx.fill();
 
-  // ---- POLPA ROSSA ----
+  //polpa rossa
   ctx.beginPath();
   ctx.moveTo(-r, 0);
   ctx.arc(0, 0, r * 0.9, Math.PI, 0, false);
@@ -790,8 +798,8 @@ function drawWatermelon(ctx, slice) {
 
   // ---- SEMINI ----
   const angleStep = 45 * Math.PI / 180; // 20 gradi in radianti
-  const startAngle = Math.PI;           // 180° (lato sinistro)
-  const endAngle = 2 * Math.PI;         // 360° (lato destro)
+  const startAngle = Math.PI + angleStep / 2;           // 180° (lato sinistro)
+  const endAngle = 2 * Math.PI - angleStep / 2;         // 360° (lato destro)
   
   for (let angle = startAngle; angle <= endAngle; angle += angleStep) {
     const dist = r * 0.55;
@@ -942,43 +950,31 @@ function drawCherries(ctx, fruit) {
   ctx.translate(cx, cy);
   ctx.scale(cell / 20, cell / 20); // scala proporzionale per qualsiasi cella
 
-  // ---- CILIEGIE ----
-  ctx.fillStyle = '#ff0000';
-  // sinistra
+  //ciliegie
+  ctx.fillStyle = COLORS.red;
   ctx.beginPath();
-  ctx.arc(-4, 4, 4, 0, Math.PI * 2);
+  ctx.arc(-4, 3, 4, 0, Math.PI * 2);
   ctx.fill();
-  // destra
   ctx.beginPath();
-  ctx.arc(4, 4, 4, 0, Math.PI * 2);
+  ctx.arc(4, 5, 4, 0, Math.PI * 2);
   ctx.fill();
 
-  // ---- GAMBI ----
-  ctx.strokeStyle = '#00aa00';
+  //gambi
+  ctx.strokeStyle = COLORS.green;
   ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.moveTo(-4, 0);
-  ctx.lineTo(0, -6);
-  ctx.lineTo(4, 0);
+  ctx.moveTo(-4, -1);
+  ctx.lineTo(0, -8);
+  ctx.lineTo(4, 1);
   ctx.stroke();
 
-  // ---- FOGLIA ----
-  ctx.fillStyle = '#00cc00';
+  //riflessi bianchi
+  ctx.fillStyle = COLORS.white;
   ctx.beginPath();
-  ctx.moveTo(0, -6);
-  ctx.quadraticCurveTo(2, -8, 0, -10);
-  ctx.quadraticCurveTo(-2, -8, 0, -6);
+  ctx.arc(-5.2, 2, 1.2, 0, Math.PI * 2);
   ctx.fill();
-
-  // ---- RIFLESSI (bianco puro, semplici) ----
-  ctx.fillStyle = '#ffffff';
-  // riflesso sinistra
   ctx.beginPath();
-  ctx.arc(-5.2, 2.2, 1.2, 0, Math.PI * 2);
-  ctx.fill();
-  // riflesso destra
-  ctx.beginPath();
-  ctx.arc(2.8, 2.2, 1.2, 0, Math.PI * 2);
+  ctx.arc(2.8, 4, 1.2, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.restore();
@@ -996,7 +992,7 @@ function drawBanana(ctx, banana) {
   const grad = ctx.createLinearGradient(cx, cy - r, cx, cy + r * 1.5);
   grad.addColorStop(0, '#ff9');
   grad.addColorStop(0.5, '#fd3');
-  grad.addColorStop(1, '#da0');
+  grad.addColorStop(1, '#a70');
   ctx.fillStyle = grad;
   ctx.strokeStyle = '#b90';
   ctx.lineWidth = 2;
@@ -1005,9 +1001,9 @@ function drawBanana(ctx, banana) {
   // curva superiore ampia (più alta)
   ctx.moveTo(cx - r, cy - r / 3);
   ctx.quadraticCurveTo(cx, cy + r * 0.5, cx + r, cy);
-  ctx.quadraticCurveTo(cx, cy + r * 1.8, cx - r, cy - r / 3);
+  ctx.quadraticCurveTo(cx, cy + r * 1.6, cx - r, cy - r / 10);
+  
   ctx.closePath();
-
   ctx.fill();
   ctx.stroke();
 }
@@ -1180,6 +1176,7 @@ function tick() {
     if (newHead.x === apples[i].x && newHead.y === apples[i].y) {
 	  eatApple = true;
 	  drawStats = true;
+	  applesEaten.push({x:apples[i].x, y:apples[i].y, when:Date.now()});
 	  if(apples[i].type === 0) {
 	    //meluzza!!!
 	    apples.splice(i, 1);//rimuove l'elemento i dall'array
@@ -1570,6 +1567,7 @@ function reset() {
   snakePattern = createSnakePattern(gameCtx);
   
   statsArray = [ 1, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+  applesEaten = [];
   
   alive = true;
   lastTime = performance.now();
