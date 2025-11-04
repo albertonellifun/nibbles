@@ -76,20 +76,26 @@ let message = [];
 
 let currentSnakePattern = 0;
 const COLORS = {
-	snakeLight0:'#8f5', snakeDark0:'#4c4', //green
-	snakeLight1:'#f85', snakeDark1:'#c44', //red
-	snakeLight2:'#85f', snakeDark2:'#44c', //violet
-	snakeLight3:'#860', snakeDark3:'#640', //brown
-	snakeLight4:'#ccc', snakeDark4:'#aaa', //skeletor
-	snakeLight5:'#f7b', snakeDark5:'#a37', //ciccione
-	snakeLight6:'#ff5', snakeDark6:'#aa0', //godmode
-	backgroundLight0:'#420', backgroundDark0:'#200', backgroundBorder0:'#640', 
-	backgroundLight1:'#024', backgroundDark1:'#002', backgroundBorder1:'#046',
-	backgroundLight2:'#240', backgroundDark2:'#020', backgroundBorder2:'#460',
-	backgroundLight3:'#444', backgroundDark3:'#222', backgroundBorder3:'#666',
-	backgroundLight4:'#620', backgroundDark4:'#000', backgroundBorder4:'#b60',
-	backgroundLight5:'#024', backgroundDark5:'#400', backgroundBorder5:'#f7b',
-	backgroundLight6:'#024', backgroundDark6:'#002', backgroundBorder6:'#009',
+	snakeLight0:'#8f5', snakeDark0:'#4c4', snakeBorder0:'#af7', //green
+	snakeLight1:'#f85', snakeDark1:'#c44', snakeBorder1:'#fa7', //red
+	snakeLight2:'#85f', snakeDark2:'#44c', snakeBorder2:'#a7f', //violet
+	snakeLight3:'#860', snakeDark3:'#640', snakeBorder3:'#a80', //brown
+	snakeLight4:'#ccc', snakeDark4:'#aaa', snakeBorder4:'#fff', //skeletor
+	snakeLight5:'#f7b', snakeDark5:'#a37', snakeBorder5:'#803', //ciccione
+	snakeLight6:'#ff5', snakeDark6:'#aa0', snakeBorder6:'#880', //godmode
+	
+	snakeLight7:'#57f', snakeDark7:'#35d', snakeBorder7:'#14a', //google
+	
+	backgroundLight0:'#420', backgroundDark0:'#200', backgroundBorder0:'#640', //brown
+	backgroundLight1:'#024', backgroundDark1:'#002', backgroundBorder1:'#046', //blue
+	backgroundLight2:'#240', backgroundDark2:'#020', backgroundBorder2:'#460', //green
+	backgroundLight3:'#444', backgroundDark3:'#222', backgroundBorder3:'#666', //gray
+	backgroundLight4:'#620', backgroundDark4:'#000', backgroundBorder4:'#b60', //orange
+	backgroundLight5:'#024', backgroundDark5:'#400', backgroundBorder5:'#f7b', //pink
+	backgroundLight6:'#024', backgroundDark6:'#002', backgroundBorder6:'#009', //blue
+	
+	backgroundLight7:'#ad5', backgroundDark7:'#9c4', backgroundBorder7:'#cf7', //google
+	
 	brown:'#640',
 	red:'#f00',
 	white:'#fff',				 
@@ -118,7 +124,16 @@ function createSnakePattern(ctx) {
   }
   return ctx.createPattern(p, 'repeat');
 }
-let snakePattern = createSnakePattern(gameCtx);
+
+let snakePattern = [];
+for (let i = 0; i < 8; i++) {
+  currentSnakePattern = i;
+  createSnakePattern(gameCtx);
+  snakePattern.push(createSnakePattern(gameCtx));
+}
+currentSnakePattern = 0;
+
+
 
 
 //corpo
@@ -127,8 +142,9 @@ function drawSegment(ctx, curr, prev, isLast) {
   const py = curr.y * cell + cell / 2;
   
   ctx.save();
-  ctx.fillStyle = snakePattern;
-
+  ctx.fillStyle = snakePattern[currentSnakePattern];
+  ctx.strokeStyle = COLORS['snakeBorder'+currentSnakePattern];
+  
   if (!isLast) {
     //segmento normale
     ctx.beginPath();
@@ -185,9 +201,10 @@ function drawSegment(ctx, curr, prev, isLast) {
     ctx.moveTo(px, py);
     ctx.lineTo(nx, ny);
     ctx.lineWidth = (cell * skeletorFactor) - 2;
-    ctx.strokeStyle = snakePattern;
+    ctx.strokeStyle = snakePattern[currentSnakePattern];
     ctx.stroke();
   }
+  
   ctx.restore();
 }
 
@@ -263,7 +280,9 @@ function drawHead(ctx, curr, dir, neck) {
     ctx.fill();
   } else {
     //linguetta biforcuta + narici
-    const tongueLength = cell / 10;//distanceAppleSnake;
+	let modulo = ((curr.x | 0) + (curr.y | 0)) % 3;
+	let divisore = (modulo === 0 ? 4 : modulo === 1 ? 2 : 12)
+    const tongueLength =  cell / divisore;//distanceAppleSnake;
 	const noseWidth = cell / 12;
     const noseHeight = cell / 12;
 	
@@ -419,15 +438,15 @@ function drawApple(ctx, apple) {
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(cx, cy - r);
-  ctx.lineTo(cx, cy - r - 4);
+  ctx.lineTo(cx, cy - r + 4);
   ctx.stroke();
 
   //foglietta
   ctx.fillStyle = COLORS.medGreen;
   ctx.beginPath();
   ctx.moveTo(cx, cy - r - 4);
-  ctx.quadraticCurveTo(cx + 4, cy - r - 8, cx + 8, cy - r - 2);
-  ctx.quadraticCurveTo(cx + 4, cy - r - 3, cx, cy - r - 4);
+  ctx.quadraticCurveTo(cx + 4, cy - r - 4, cx + 8, cy - r - 2);
+  ctx.quadraticCurveTo(cx + 4, cy - r + 1, cx, cy - r - 4);
   ctx.fill();
 }
 
@@ -450,8 +469,8 @@ function drawPumpkin(ctx, pumpkin) {
   ctx.closePath();
 
   // scanalature verticali (righe scure che danno effetto zucca)
-  ctx.strokeStyle = 'rgba(80,40,0,0.35)';
-  ctx.lineWidth = Math.max(1, cell * 0.06);
+  ctx.strokeStyle = 'rgba(80,40,0,0.15)';
+  ctx.lineWidth = 1;
   for (let i = -2; i <= 2; i++) {
     ctx.beginPath();
     ctx.ellipse(cx + (i * r * 0.18), cy, r * 0.6, r * 0.85, 0, 0, Math.PI * 2);
@@ -471,14 +490,13 @@ function drawPumpkin(ctx, pumpkin) {
   ctx.closePath();
   ctx.fill();
 
-
-  // faccina (jack-o’-lantern) – occhi triangolari + bocca a zig-zag
+  //jack-o-lantern :)
   ctx.fillStyle = COLORS.black;
   const eyeOffsetX = r * 0.3;
   const eyeOffsetY = r * 0.15;
   const eyeSize = r * 0.25;
 
-  // occhi
+  //occhi a triangolo
   ctx.beginPath();
   ctx.moveTo(cx + eyeOffsetX - eyeSize, cy - eyeOffsetY + eyeSize / 3);
   ctx.lineTo(cx + eyeOffsetX + eyeSize, cy - eyeOffsetY - eyeSize);
@@ -493,7 +511,7 @@ function drawPumpkin(ctx, pumpkin) {
   ctx.closePath();
   ctx.fill();
 
-  // bocca a zig-zag (tipo sorriso spaventoso)
+  //sorriso spaventevole
   ctx.beginPath();
   const mouthY = cy + r * 0.35;
   const mouthW = r * 0.9;
@@ -612,8 +630,8 @@ function drawGrenade(ctx, grenade) {
   for (let i = -2; i <= 2; i++) {
     const offset = (i * r * 0.3);
     ctx.beginPath();
-    ctx.moveTo(cx - r * 0.9, cy + offset);
-    ctx.lineTo(cx + r * 0.9, cy + offset);
+    ctx.moveTo(cx - r * 0.4, cy + offset);
+    ctx.lineTo(cx + r * 0.4, cy + offset);
     ctx.stroke();
     ctx.closePath();
   }
@@ -756,16 +774,6 @@ function drawWatermelon(ctx, slice) {
   ctx.save();
   ctx.translate(cx, cy);
   ctx.rotate(tilt);
-
-  // ---- OMBRA ----
-  const shadowGrad = ctx.createRadialGradient(0, r * 0.6, r * 0.1, 0, r * 0.6, r);
-  shadowGrad.addColorStop(0, 'rgba(0,0,0,0.25)');
-  shadowGrad.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = shadowGrad;
-  ctx.beginPath();
-  ctx.ellipse(0, r * 0.65, r * 1.1, r * 0.35, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.closePath();
 
   //buccia verde
   ctx.beginPath();
@@ -1111,7 +1119,11 @@ document.addEventListener('keydown', e => {
     spawnObject(apples, Number(e.key)); 
 	return; 
   }
-
+  
+  if (e.key === 'G' || e.key === 'g' ) {
+    currentSnakePattern = 7;
+	return;
+  }
 
   if (newDir) {
     const lastDir = inputQueue.length > 0 ? inputQueue[inputQueue.length - 1] : dir;
@@ -1292,11 +1304,9 @@ function tick() {
   if (skeletorFactor < 1) {
     skeletorFactor += 0.025;
 	currentSnakePattern = 4;
-	snakePattern = createSnakePattern(gameCtx);
 	if (skeletorFactor > 1) {
 	  skeletorFactor = 1;
 	  currentSnakePattern = 0;
-	  snakePattern = createSnakePattern(gameCtx);
 	}
   }
   
@@ -1304,11 +1314,9 @@ function tick() {
   if (burgerFactor > 1) {
     burgerFactor -= 0.025;
 	currentSnakePattern = 5;
-	snakePattern = createSnakePattern(gameCtx);
 	if (burgerFactor < 1) {
 	  burgerFactor = 1;
 	  currentSnakePattern = 0;
-	  snakePattern = createSnakePattern(gameCtx);
 	}
   }
   
@@ -1317,7 +1325,6 @@ function tick() {
     bananaGrow--;
 	if (bananaGrow === 0) {
 	  currentSnakePattern = 0;
-	  snakePattern = createSnakePattern(gameCtx);
 	}
   }
   
@@ -1325,11 +1332,9 @@ function tick() {
   if (poisonEffect > 0) {
     sgamolla();//smonta serpentone
 	currentSnakePattern = (currentSnakePattern+1) % 4;
-	snakePattern = createSnakePattern(gameCtx);
 	poisonEffect--;
 	if (poisonEffect === 0) {
 	  currentSnakePattern = 0;
-	  snakePattern = createSnakePattern(gameCtx);
 	}
   }
   
@@ -1337,10 +1342,8 @@ function tick() {
   if (godmodeEffect > 0) {
     godmodeEffect--;
 	currentSnakePattern = 6;
-	snakePattern = createSnakePattern(gameCtx);
 	if (godmodeEffect === 0) {
 	  currentSnakePattern = 0;
-	  snakePattern = createSnakePattern(gameCtx);
 	}
   }
   
@@ -1533,7 +1536,7 @@ function gameLoop(timestamp) {
     gameCtx.fillStyle = COLORS.white;
     gameCtx.font = '10px monospace';
 	gameCtx.textAlign = 'left';
-	const fiveSecondsAgo = Date.now() - 5000;
+	const fiveSecondsAgo = Date.now() - 6000;
     message = message.filter(e => e.dat >= fiveSecondsAgo);
 	let messages = message.map(e => e.msg).join(' >>> ');
 	
@@ -1564,7 +1567,6 @@ function reset() {
   godmodeEffect = 0;
 
   currentSnakePattern = 0;
-  snakePattern = createSnakePattern(gameCtx);
   
   statsArray = [ 1, 0, 0, 0, 0, 0, 0, 0, 0, 0];
   applesEaten = [];
