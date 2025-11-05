@@ -72,6 +72,25 @@
     <canvas id="game"  width="500" height="500"></canvas>
     <canvas id="stats" width="140" height="500"></canvas>
   </div>
+  
+  <audio id="eatSound" preload="auto">
+	<source src="./res/eat.wav" type="audio/mpeg">
+  </audio>
+  <audio id="turn1Sound" preload="auto">
+	<source src="./res/turn1.wav" type="audio/mpeg">
+  </audio>
+  <audio id="turn2Sound" preload="auto">
+	<source src="./res/turn2.wav" type="audio/mpeg">
+  </audio>
+  <audio id="turn3Sound" preload="auto">
+	<source src="./res/turn3.wav" type="audio/mpeg">
+  </audio>
+  <audio id="turn4Sound" preload="auto">
+	<source src="./res/turn4.wav" type="audio/mpeg">
+  </audio>
+  <audio id="dieSound" preload="auto">
+	<source src="./res/die.wav" type="audio/mpeg">
+  </audio>
 <script>
 const gameCanvas = document.getElementById('game');
 const gameCtx = gameCanvas.getContext('2d');
@@ -1148,6 +1167,11 @@ document.addEventListener('keydown', e => {
 	return;
   }
   
+  if (e.key === 'M' || e.key === 'm') {
+    isMute = !isMute;
+	return;
+  }
+  
   if (e.key >= '0' && e.key <= '9') {
     spawnObject(apples, Number(e.key)); 
 	return; 
@@ -1160,10 +1184,11 @@ document.addEventListener('keydown', e => {
 
   if (newDir) {
     const lastDir = inputQueue.length > 0 ? inputQueue[inputQueue.length - 1] : dir;
-    // Evita direzioni opposte
-    if (!(newDir.x === -lastDir.x && newDir.y === -lastDir.y)) {
+    //evita direzioni opposte o uguali
+	let isOpposite = newDir.x === -lastDir.x && newDir.y === -lastDir.y;
+	let isSame = newDir.x === lastDir.x && newDir.y === lastDir.y;
+    if (!isOpposite && !isSame) {
       inputQueue.push(newDir);
-      // Limita la lunghezza della coda per sicurezza
       if (inputQueue.length > 30) inputQueue.shift();
     }
   }
@@ -1184,6 +1209,11 @@ function tick() {
     const next = inputQueue.shift();
     if (!(next.x === -dir.x && next.y === -dir.y)) {
       dir = next;
+	  playSound(dir.y < 0 ? 'turn1Sound' : 
+				dir.x > 0 ? 'turn2Sound' : 
+				dir.y > 0 ? 'turn4Sound' :
+				dir.x < 0 ? 'turn3Sound' :
+				'turnSound');
     }
   }
   
@@ -1199,8 +1229,9 @@ function tick() {
   //controlla collisioni
   let isWallCollision = checkWallCollision(newHead);
   if (isWallCollision && godmodeEffect === 0) {
+    playSound('dieSound');
     alive = false;
-	alert('Game Over!');
+	message.push({msg:'GAME OVER, PRESS (R) TO RESET!',dat:Date.now()});
 	return;
   } else {
     if(newHead.x === 0) newHead.x = cols - (padding * 2);
@@ -1243,6 +1274,7 @@ function tick() {
 		else if (objectType > 80 && objectType < 85) type = 8; // paninazzo
 		else if (objectType > 90 && objectType < 95) type = 9; // ciliegie
 		if (type !== -1) spawnObject(apples, type);
+		playSound('eatSound');
 	  } else if (apples[i].type === 1) { 
 	    //banana!!!
 		apples.splice(i, 1);//rimuove l'elemento i dall'array
@@ -1251,6 +1283,7 @@ function tick() {
 	  	bananaGrow = 8;
 		statsArray[1]++;
 		message.push({msg:'BANANA GROW!',dat:Date.now()});
+		playSound('eatSound');
 	  } else if (apples[i].type === 2) {
 	    //fungo
 		apples.splice(i, 1);//rimuove l'elemento i dall'array
@@ -1259,6 +1292,7 @@ function tick() {
 		poisonEffect = 30;
 		statsArray[2]++;
 		message.push({msg:'POISONED!',dat:Date.now()});
+		playSound('eatSound');
 	  } else if (apples[i].type === 3) {
 	    //poison
 		apples.splice(i, 1);//rimuove l'elemento i dall'array
@@ -1267,19 +1301,22 @@ function tick() {
 		poisonEffect = 60;
 		statsArray[3]++;
 		message.push({msg:'SUPER-POISONED!',dat:Date.now()});
+		playSound('eatSound');
 	  } else if (apples[i].type === 4) {
 	    //bombetta/granata
 		apples.splice(i, 1);//rimuove l'elemento i dall'array
 		
 		//effetti collaterali...
 		statsArray[4]++;
-		message.push({msg:'KA-BOOM!',dat:Date.now()});
 		if (godmodeEffect === 0) { 
+		  playSound('dieSound');
           alive = false;		
-		  alert('Game Over!');
+		  message.push({msg:'GAME OVER, PRESS (R) TO RESET!',dat:Date.now()});
 		  return; 
 		} else {
 		  eatApple = true;
+		  playSound('eatSound');
+		  message.push({msg:'KA-BOOM!',dat:Date.now()});
 		}
 	  } else if (apples[i].type === 5) {
 	    //bombetta/granata
@@ -1287,13 +1324,15 @@ function tick() {
 		
 		//effetti collaterali...
 		statsArray[5]++;
-		message.push({msg:'OUCH!',dat:Date.now()});
 		if (godmodeEffect === 0) {
+		  playSound('dieSound');
 		  alive = false;
-		  alert('Game Over!');
+		  message.push({msg:'GAME OVER, PRESS (R) TO RESET!',dat:Date.now()});
 		  return;
 		} else {
 		  eatApple = true;
+		  playSound('eatSound');
+		  message.push({msg:'OUCH!',dat:Date.now()});
 		}
 	  } else if (apples[i].type === 6) {
 	    //skeletor
@@ -1304,6 +1343,7 @@ function tick() {
 		burgerFactor = 1;
 		statsArray[6]++;
 		message.push({msg:'HALLOWEEN MODE!',dat:Date.now()});
+		playSound('eatSound');
 	  } else if (apples[i].type === 7) {
 	    //cocomero
 		apples.splice(i, 1);//rimuove l'elemento i dall'array
@@ -1312,6 +1352,7 @@ function tick() {
 	  	bananaGrow = 16;
 		statsArray[7]++;
 		message.push({msg:'WATERMELON GROW!',dat:Date.now()});
+		playSound('eatSound');
 	  }	else if (apples[i].type === 8) {
 	    //burger king
 		apples.splice(i, 1);//rimuove l'elemento i dall'array
@@ -1321,6 +1362,7 @@ function tick() {
 		burgerFactor = 2;
 		statsArray[8]++;
 		message.push({msg:'BURGER KING MODE!',dat:Date.now()});
+		playSound('eatSound');
 	  }	else if (apples[i].type === 9) {
 	    //ciliegie
 		apples.splice(i, 1);//rimuove l'elemento i dall'array
@@ -1329,6 +1371,7 @@ function tick() {
 		statsArray[9]++;
 		godmodeEffect = 60;
 		message.push({msg:'BWUAHUHA... GOD MODE!',dat:Date.now()});
+		playSound('eatSound');
 	  }	
     }
   }
@@ -1650,15 +1693,26 @@ addTouchSwipe(document.body, {
     
     if (newDir) {
       const lastDir = inputQueue.length > 0 ? inputQueue[inputQueue.length - 1] : dir;
-      // Evita direzioni opposte
-      if (!(newDir.x === -lastDir.x && newDir.y === -lastDir.y)) {
+      //evita direzioni opposte o uguali
+	  let isOpposite = newDir.x === -lastDir.x && newDir.y === -lastDir.y;
+	  let isSame = newDir.x === lastDir.x && newDir.y === lastDir.y;
+      if (!isOpposite && !isSame) {
         inputQueue.push(newDir);
-        // Limita la lunghezza della coda per sicurezza
         if (inputQueue.length > 30) inputQueue.shift();
       }
     }
   }
 });
+
+let isMute = true;
+function playSound(id) {
+  if (isMute) return;
+  const audio = document.getElementById(id);
+  if (audio) {
+	audio.currentTime = 0;
+	audio.play();
+  }
+}
 
 </script>
 </body>
