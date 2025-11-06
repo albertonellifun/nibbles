@@ -304,10 +304,67 @@ function drawHead(ctx, curr, dir, neck) {
   ctx.beginPath(); ctx.arc(ex2, ey2, eyeSize, 0, Math.PI * 2); ctx.fill();
   
   //pupille
-  ctx.fillStyle = COLORS.black;
-  ctx.beginPath(); ctx.arc(ex1, ey1, eyeSize / 2.5, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.arc(ex2, ey2, eyeSize / 2.5, 0, Math.PI * 2); ctx.fill();
+  if (snakeEyesEnabled) {
+    ctx.strokeStyle = COLORS.black;
+    ctx.lineCap = "round"; // bordi arrotondati
+    ctx.lineWidth = eyeSize / 2.5; // spessore = diametro della pupilla
+    
+	if (dir.y) {
+	  ctx.beginPath();
+      ctx.moveTo(ex1, ey1 - eyeSize / 3);
+      ctx.lineTo(ex1, ey1 + eyeSize / 3);
+      ctx.stroke();
+      
+      ctx.beginPath();
+      ctx.moveTo(ex2, ey2 - eyeSize / 3);
+      ctx.lineTo(ex2, ey2 + eyeSize / 3);
+      ctx.stroke();
+	} else {
+	  ctx.beginPath();
+      ctx.moveTo(ex1 - eyeSize / 3, ey1);
+      ctx.lineTo(ex1 + eyeSize / 3, ey1);
+      ctx.stroke();
+      
+      ctx.beginPath();
+      ctx.moveTo(ex2 - eyeSize / 3, ey2);
+      ctx.lineTo(ex2 + eyeSize / 3, ey2);
+      ctx.stroke();
+	}
+  } else {
+    ctx.fillStyle = COLORS.black;
+    ctx.beginPath(); ctx.arc(ex1, ey1, eyeSize / 2.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(ex2, ey2, eyeSize / 2.5, 0, Math.PI * 2); ctx.fill();
+  }
+  
 
+  //palpebre
+  if (eyelidEnabled) {
+	  ctx.fillStyle = COLORS['snakeLight' + currentSnakePattern];	  
+	  ctx.beginPath();
+	  let modulo = ((curr.x | 0) + (curr.y | 0)) % 3;
+	  let spostamentoSx = modulo === 0 ? 3 : modulo === 1 ? 2 : 1;
+	  let spostamentoDx = modulo === 0 ? 3 : modulo === 1 ? 2 : 1;
+	  if (dir.y === 1) { 
+		//guarda in basso - palpebre sopra
+		ctx.arc(ex1, ey1 - spostamentoSx, eyeSize, Math.PI, 2 * Math.PI);
+		ctx.arc(ex2, ey2 - spostamentoDx, eyeSize, Math.PI, 2 * Math.PI);
+	  } else if (dir.y === -1) { 
+		//guarda in alto - palpebre sotto
+		ctx.arc(ex1, ey1 + spostamentoSx, eyeSize, 0, Math.PI);
+		ctx.arc(ex2, ey2 + spostamentoDx, eyeSize, 0, Math.PI);
+	  } else if (dir.x === 1) { 
+		//guarda a destra - palpebre a sinistra
+		ctx.arc(ex1 - spostamentoSx, ey1, eyeSize, Math.PI / 2, Math.PI * 3 / 2);
+		ctx.arc(ex2 - spostamentoDx, ey2, eyeSize, Math.PI / 2, Math.PI * 3 / 2);
+	  } else { 
+		//guarda a sinistra - palpebre a destra
+		ctx.arc(ex1 + spostamentoSx, ey1, eyeSize, -Math.PI / 2, Math.PI / 2);
+		ctx.arc(ex2 + spostamentoDx, ey2, eyeSize, -Math.PI / 2, Math.PI / 2);
+	  }
+	  ctx.fill();
+  }  
+  
+  //bocca o lingua in base alla distanza dalla mela piu vicina
   let distanceAppleSnake = 999;
   for(let i = 0; i < apples.length; i++) {
 	let dist = Math.sqrt( (apples[i].x - curr.x)*(apples[i].x - curr.x) + (apples[i].y - curr.y)*(apples[i].y - curr.y) );
@@ -1177,9 +1234,13 @@ document.addEventListener('keydown', e => {
 	return; 
   }
   
-  if (e.key === 'G' || e.key === 'g' ) {
+  if (e.key === 'G' || e.key === 'g') {
     currentSnakePattern = 7;
 	return;
+  }
+  
+  if (e.key === 'X' || e.key === 'x') {
+    if(apples.length < 15) for (let i = 0; i < 10; i++) spawnObject(apples, i%10);
   }
 
   if (newDir) {
@@ -1198,6 +1259,8 @@ document.addEventListener('keydown', e => {
 
 
 
+let eyelidEnabled = 0;
+let snakeEyesEnabled = 0;
 
 //GIOCO
 function tick() {
@@ -1225,6 +1288,14 @@ function tick() {
 	oldX: snake[0].x,
 	oldY: snake[0].y
   }; 
+  
+  //palpebre
+  if (eyelidEnabled > 0) eyelidEnabled = eyelidEnabled - 0.2;
+  else eyelidEnabled = Math.random() < (godmodeEffect ? 0.05 : 0.01) ? 2 : 0;
+  
+  //occhio da serpente
+  if (snakeEyesEnabled > 0) snakeEyesEnabled = snakeEyesEnabled - 0.2;
+  else snakeEyesEnabled = Math.random() < (godmodeEffect ? 0.1 : 0.005) ? 2 : 0;
   
   //controlla collisioni
   let isWallCollision = checkWallCollision(newHead);
