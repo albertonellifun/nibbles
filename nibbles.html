@@ -374,19 +374,50 @@ function drawHead(ctx, curr, dir, neck) {
   if(distanceAppleSnake <= 3) {
     //bocca rossa + grande se vicina alla mela
     const mounthSize = cell / ( Math.max(distanceAppleSnake, 3));
+	const noseWidth = cell / 12;
+    const noseHeight = cell / 12;
 	
-	ctx.fillStyle = COLORS.red;
-    ctx.beginPath();
-	if (dir.y === 1) {
-      ctx.arc(cx, cy + mounthSize, mounthSize, 0, Math.PI, false);
-    } else if (dir.y === -1) {
-      ctx.arc(cx, cy - mounthSize, mounthSize, Math.PI, 0, false);
-    } else if (dir.x === 1) {
+	if (dir.x === 1) {
+	  ctx.beginPath();
+	  ctx.fillStyle = COLORS.red;
       ctx.arc(cx + mounthSize, cy, mounthSize, Math.PI / 2, -Math.PI / 2, true);
+	  ctx.fill();
+	  ctx.beginPath();
+	  ctx.fillStyle = COLORS.black;
+	  ctx.fillRect(ex1 + eyeSize * 1.5, ey1 - noseHeight / 2, noseWidth, noseHeight);
+      ctx.fillRect(ex2 + eyeSize * 1.5, ey2 - noseHeight / 2, noseWidth, noseHeight);
+	  ctx.fill();
     } else if (dir.x === -1) {
+	  ctx.beginPath();
+	  ctx.fillStyle = COLORS.red;
       ctx.arc(cx - mounthSize, cy, mounthSize, -Math.PI / 2, Math.PI / 2, true);
-    }
-    ctx.fill();
+	  ctx.fill();
+	  ctx.beginPath();
+	  ctx.fillStyle = COLORS.black;
+	  ctx.fillRect(ex1 - eyeSize * 1.5 - noseWidth, ey1 - noseHeight / 2, noseWidth, noseHeight);
+      ctx.fillRect(ex2 - eyeSize * 1.5 - noseWidth, ey2 - noseHeight / 2, noseWidth, noseHeight);
+	  ctx.fill();
+    } else if (dir.y === 1) {
+	  ctx.beginPath();
+      ctx.fillStyle = COLORS.red;
+	  ctx.arc(cx, cy + mounthSize, mounthSize, 0, Math.PI, false);
+	  ctx.fill();
+	  ctx.beginPath();
+	  ctx.fillStyle = COLORS.black;
+	  ctx.fillRect(ex1 - noseWidth / 2, ey1 + eyeSize * 1.5, noseWidth, noseHeight);
+      ctx.fillRect(ex2 - noseWidth / 2, ey2 + eyeSize * 1.5, noseWidth, noseHeight);
+	  ctx.fill();
+    } else {
+	  ctx.beginPath();
+      ctx.fillStyle = COLORS.red;
+	  ctx.arc(cx, cy - mounthSize, mounthSize, Math.PI, 0, false);
+	  ctx.fill();
+	  ctx.beginPath();
+	  ctx.fillStyle = COLORS.black;
+	  ctx.fillRect(ex1 - noseWidth / 2, ey1 - eyeSize * 1.5 - noseHeight, noseWidth, noseHeight);
+      ctx.fillRect(ex2 - noseWidth / 2, ey2 - eyeSize * 1.5 - noseHeight, noseWidth, noseHeight);
+	  ctx.fill();
+    }    
   } else {
     //linguetta biforcuta + narici
 	let modulo = ((curr.x | 0) + (curr.y | 0)) % 3;
@@ -398,7 +429,6 @@ function drawHead(ctx, curr, dir, neck) {
 	ctx.strokeStyle = COLORS.red;
     ctx.lineWidth = 2;
     ctx.beginPath();
-	
     if (dir.x === 1) {
       ctx.moveTo(cx + cell / 2.2, cy);
       ctx.lineTo(cx + tongueLength + cell / 1.4, cy);
@@ -447,15 +477,15 @@ function drawHead(ctx, curr, dir, neck) {
 	let crownY = cy;
   
     // Posiziona la corona sopra la testa, dietro la direzione
-    if (dir.y === 1) crownY = cy - cell / 2.2 - crownHeight / 2; // guarda su
-    else if (dir.y === -1) crownY = cy + cell / 2.2 + crownHeight / 2; // guarda giù
-    else if (dir.x === 1) crownX = cx - cell / 2.2 - crownHeight / 2; // guarda destra
+    if (dir.x === 1) crownX = cx - cell / 2.2 - crownHeight / 2; // guarda destra
     else if (dir.x === -1) crownX = cx + cell / 2.2 + crownHeight / 2; // guarda sinistra
-  
+    else if (dir.y === 1) crownY = cy - cell / 2.2 - crownHeight / 2; // guarda su
+    else crownY = cy + cell / 2.2 + crownHeight / 2; // guarda giù
+    
     ctx.save();
     ctx.translate(crownX, crownY);
-    if (dir.x === -1) ctx.rotate(Math.PI / 2);
-    else if (dir.x === 1) ctx.rotate(-Math.PI / 2);
+	if (dir.x === 1) ctx.rotate(-Math.PI / 2);
+    else if (dir.x === -1) ctx.rotate(Math.PI / 2);
     else if (dir.y === -1) ctx.rotate(Math.PI);
   
     // --- FASCIA: trapezio rovesciato ---
@@ -463,8 +493,8 @@ function drawHead(ctx, curr, dir, neck) {
     const baseBottom = crownWidth * 0.6;
     const height = crownHeight * 0.5;
   
-    ctx.fillStyle = "#FFD700"; // oro
-    ctx.strokeStyle = "#B8860B";
+    ctx.fillStyle = "#fd0"; // oro
+    ctx.strokeStyle = "#b80"; // oro scuro
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(-baseBottom / 2, height / 2);
@@ -497,7 +527,7 @@ function drawHead(ctx, curr, dir, neck) {
   
     // --- GEMME sulle punte ---
     const gemColors = ["#f00", "#0f0", "#00f"];
-    const gemRadius = crownWidth * 0.07;
+    const gemRadius = crownWidth * 0.1;
     for (let i = 0; i < tipPositions.length; i++) {
       const x = tipPositions[i];
       const y = -height / 2 - tipHeight;
@@ -505,6 +535,9 @@ function drawHead(ctx, curr, dir, neck) {
       ctx.beginPath();
       ctx.arc(x, y - gemRadius * 0.6, gemRadius, 0, Math.PI * 2);
       ctx.fill();
+	  ctx.strokeStyle = COLORS.white;
+	  ctx.arc(x, y - gemRadius * 0.6, gemRadius * 1.2, 0, Math.PI * 2);
+	  ctx.stroke();
   
       // riflesso bianco
       ctx.fillStyle = "rgba(255,255,255,0.6)";
