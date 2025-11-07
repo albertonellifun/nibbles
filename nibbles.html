@@ -99,12 +99,14 @@ const gameCanvas = document.getElementById('game');
 const gameCtx = gameCanvas.getContext('2d');
 const cols = 25;
 const rows = 25;
-const cell = gameCanvas.width / cols;
+const cell = Math.min(gameCanvas.width / cols, gameCanvas.height / rows);//20
 const padding = 1;//1 cella vuota intorno
 
 const statsCanvas = document.getElementById('stats');
 const statsCtx = statsCanvas.getContext('2d');
-let statsArray = [ 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+const statsCols = 7;
+const statsRows = 25;
+let statsArray = [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 let redrawStats = true;
 
 let bananaGrow = 0;//quando settato il serpente creeesce
@@ -114,7 +116,10 @@ let burgerFactor = 1;//fattore di ciccionosita' dei segmenti
 let hasCrown = false;//chi e' lo re? ATTILA!
 let godmodeEffect = 0;//quando settato il serpente attraversa i muri
 
-let snake = [ { x: 10, y: 10, oldX: 9, oldY: 10 } ];
+let snake = [ { x: (cols / 3) | 0, 
+				y: (rows / 3) | 0, 
+				oldX: ((cols / 3) | 0) - 1, 
+				oldY: (rows / 3) | 0 } ];
 
 //problema della direzione, aggiornata al tick, ma con coda...
 let dir = { x: 1, y: 0 };
@@ -122,7 +127,9 @@ let nextDir = dir;//aggiorno al tick, non immediatamente
 let inputQueue = [];
 
 
-let apples = [ { x: 5, y: 5, type: 0 } ];//serpente cresce/si droga/muore
+let apples = [ { x: (cols / 4) | 0, 
+				 y: (rows / 4) | 0, 
+				 type: 0 } ];//serpente cresce/si droga/muore
 let alive = true;
 let snakeMinLength = 4;
 let applesEaten = [];
@@ -346,18 +353,33 @@ function drawRockyGraffietto(ctx, curr) {
   const faceColor = "#ba9";  // beige chiaro
   const maskColor = "#322";  // marrone scuro (muso e orecchie)
   const eyeColor = "#5cf";   // azzurro
+  
+  //gradiente faccia radiale centrato nella testa
+  const headGrad = ctx.createRadialGradient(cx, cy, r * 0.1, cx, cy, r);
+  headGrad.addColorStop(0, "#322");  // centro: leggermente più scuro
+  headGrad.addColorStop(1, "#ba9");  // bordi: più chiari
+  //gradiente muso radiale centrato
+  const maskGrad = ctx.createRadialGradient(cx, cy + r / 10, //centro
+											r * 0.05,        //raggio interno (dove inizia il nero)
+											cx, cy + r / 10,
+											r * 0.75         // raggio esterno (copre tutto il muso)
+  );
+
+  // Colori del gradiente
+  maskGrad.addColorStop(0, "#222"); // marrone scuro
+  maskGrad.addColorStop(1, "#322");   // marrone più chiaro ai lati
 
   //testa
   ctx.beginPath();
   ctx.ellipse(cx, cy, r, 3 * r / 5, 0, 0, Math.PI * 2);//schiacciata
   ctx.closePath();
-  ctx.fillStyle = faceColor;
+  ctx.fillStyle = headGrad;//faceColor;
   ctx.fill();
   
   //muso
   ctx.beginPath();
   ctx.ellipse(cx, cy + r / 10, 3 * r / 4, 2 * r / 5, 0, 0, Math.PI * 2);
-  ctx.fillStyle = maskColor;
+  ctx.fillStyle = maskGrad;//maskColor;
   ctx.fill();
   
   //orecchio sx
@@ -1004,76 +1026,65 @@ function drawGrenade(ctx, grenade) {
 function drawBurger(ctx, burger) {
   const cx = burger.x * cell + cell / 2;
   const cy = burger.y * cell + cell / 2;
-  const r = cell * 0.6;
-  const tilt = -Math.PI / 16; // leggera inclinazione
+  const r = cell * 0.60;
+  const tilt = -Math.PI / 15;//inclinazione
 
   ctx.save();
   ctx.translate(cx, cy);
   ctx.rotate(tilt);
 
-  // --- Ombra ---
-  const shadowGrad = ctx.createRadialGradient(0, r * 0.7, r * 0.2, 0, r * 0.7, r * 1.1);
-  shadowGrad.addColorStop(0, 'rgba(0,0,0,0.25)');
-  shadowGrad.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = shadowGrad;
-  ctx.beginPath();
-  ctx.ellipse(0, r * 0.75, r * 1.1, r * 0.35, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.closePath();
-
-  // --- Panino superiore ---
+  //panino superiore
   ctx.beginPath();
   const topGrad = ctx.createLinearGradient(0, -r, 0, 0);
   topGrad.addColorStop(0, '#fd8');
-  topGrad.addColorStop(0.5, '#fb4');
   topGrad.addColorStop(1, '#d82');
   ctx.fillStyle = topGrad;
   ctx.ellipse(0, -r * 0.3, r * 1.1, r * 0.5, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.closePath();
 
-  // --- Lattuga ---
+  //insalatina
   ctx.beginPath();
-  ctx.fillStyle = '#62b44a';
+  ctx.fillStyle = '#6b5';
   ctx.ellipse(0, -r * 0.05, r * 1.05, r * 0.25, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.closePath();
 
-  // --- Pomodoro ---
+  //pomodoro
   ctx.beginPath();
   const tomatoGrad = ctx.createLinearGradient(0, -r * 0.1, 0, r * 0.1);
-  tomatoGrad.addColorStop(0, '#ff6b6b');
-  tomatoGrad.addColorStop(1, '#b91d1d');
+  tomatoGrad.addColorStop(0, '#f77');
+  tomatoGrad.addColorStop(1, '#b22');
   ctx.fillStyle = tomatoGrad;
   ctx.ellipse(0, r * 0.05, r * 1.0, r * 0.22, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.closePath();
 
-  // --- Formaggio ---
+  //formaggio
   ctx.beginPath();
-  ctx.fillStyle = '#ffd84d';
-  ctx.moveTo(-r * 0.9, r * 0.15);
-  ctx.lineTo(r * 0.9, r * 0.15);
-  ctx.lineTo(r * 0.95, r * 0.35);
-  ctx.lineTo(-r * 0.95, r * 0.35);
+  ctx.fillStyle = '#fd5';
+  ctx.moveTo(-r, r * 0.15);
+  ctx.lineTo(r, r * 0.15);
+  ctx.lineTo(r, r * 0.35);
+  ctx.lineTo(-r, r * 0.35);
   ctx.closePath();
   ctx.fill();
 
-  // --- Carne ---
+  //carne
   ctx.beginPath();
   const meatGrad = ctx.createLinearGradient(0, r * 0.2, 0, r * 0.5);
-  meatGrad.addColorStop(0, '#4e2a16');
-  meatGrad.addColorStop(1, '#2d150a');
+  meatGrad.addColorStop(0, '#531');
+  meatGrad.addColorStop(1, '#310');
   ctx.fillStyle = meatGrad;
   ctx.ellipse(0, r * 0.35, r * 1.05, r * 0.22, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.closePath();
 
-  // --- Panino inferiore ---
+  //panino inferiore
   ctx.beginPath();
-  const bottomGrad = ctx.createLinearGradient(0, 0, 0, r * 0.4);
-  bottomGrad.addColorStop(0, '#e6ad53');
-  bottomGrad.addColorStop(1, '#b57628');
+  const bottomGrad = ctx.createLinearGradient(0, r * 0.35, 0, r * 0.85);
+  bottomGrad.addColorStop(0, '#ea5');
+  bottomGrad.addColorStop(1, '#c63');
   ctx.fillStyle = bottomGrad;
   ctx.ellipse(0, r * 0.6, r * 1.05, r * 0.25, 0, 0, Math.PI * 2);
   ctx.fill();
@@ -1086,8 +1097,8 @@ function drawBurger(ctx, burger) {
 function drawWatermelon(ctx, slice) {
   const cx = slice.x * cell + cell / 2;
   const cy = slice.y * cell + cell / 2;
-  const r = cell * 0.6;          // raggio fetta
-  const tilt = 6 * Math.PI / 5;  // inclinazione (negativo = verso sinistra)
+  const r = cell * 0.6;          //raggio fetta
+  const tilt = 6 * Math.PI / 5;  //inclinazione (negativo = verso sinistra)
 
   ctx.save();
   ctx.translate(cx, cy);
@@ -1122,7 +1133,7 @@ function drawWatermelon(ctx, slice) {
   ctx.fillStyle = redGrad;
   ctx.fill();
 
-  // ---- SEMINI ----
+  //semini
   const angleStep = 45 * Math.PI / 180; // 20 gradi in radianti
   const startAngle = Math.PI + angleStep / 2;           // 180° (lato sinistro)
   const endAngle = 2 * Math.PI - angleStep / 2;         // 360° (lato destro)
@@ -1144,7 +1155,7 @@ function drawWatermelon(ctx, slice) {
     ctx.restore();
   }
 
-  // ---- RIFLESSO ----
+  //riflesso
   ctx.beginPath();
   ctx.fillStyle = 'rgba(255,255,255,0.18)';
   ctx.ellipse(-r * 0.25, -r * 0.3, r * 0.25, r * 0.12, 0, 0, Math.PI * 2);
@@ -1161,11 +1172,11 @@ function drawWatermelon(ctx, slice) {
 function drawMushroom(ctx, poison) {
   const cx = poison.x * cell + cell / 2;
   const cy = poison.y * cell + cell / 2;
-  const stemH = cell * 0.6;       // altezza gambo
-  const stemW = cell * 0.4;       // larghezza gambo
-  const capR = cell * 0.65;       // raggio cappello
+  const stemH = cell * 0.6;       //altezza gambo
+  const stemW = cell * 0.4;       //larghezza gambo
+  const capR = cell * 0.65;       //raggio cappello
 
-  // ---- GAMBO (dritto e cicciottello) ----
+  //gambo
   ctx.beginPath();
   ctx.roundRect(cx - stemW / 2, cy, stemW, stemH, stemW / 3);
   const stemGrad = ctx.createLinearGradient(cx, cy, cx, cy + stemH);
@@ -1177,7 +1188,7 @@ function drawMushroom(ctx, poison) {
   ctx.strokeStyle = '#bda981';
   ctx.stroke();
 
-  // ---- CAPPELLO (rosso con sfumatura) ----
+  //cappella rossa sfumata (sto zozzo)
   const grad = ctx.createLinearGradient(cx - capR, cy - capR, cx + capR, cy);
   grad.addColorStop(0, '#b80000');
   grad.addColorStop(0.5, '#ff1a1a');
@@ -1192,7 +1203,7 @@ function drawMushroom(ctx, poison) {
   ctx.lineWidth = Math.max(1, cell * 0.07);
   ctx.stroke();
 
-  // ---- PUNTINI BIANCHI (più grandi e verso il bordo) ----
+  //puntini bianchi
   const spots = [
     { dx: -capR * 0.65, dy: -capR * 0.50, r: capR * 0.13 },
     { dx: -capR * 0.35, dy: -capR * 0.65, r: capR * 0.12 },
@@ -1203,18 +1214,18 @@ function drawMushroom(ctx, poison) {
     { dx:  capR * 0.2,  dy: -capR * 0.40, r: capR * 0.09 },
   ];
 
-  ctx.fillStyle = 'white';
+  ctx.fillStyle = COLORS.white;
   spots.forEach(s => {
     ctx.beginPath();
     ctx.arc(cx + s.dx, cy + s.dy, s.r, 0, Math.PI * 2);
     ctx.fill();
   });
 
-  // ---- OMBREGGIATURA sotto il cappello ----
+  //ombra sotto il cappello
   ctx.beginPath();
   ctx.ellipse(cx, cy + cell * 0.05, capR * 0.9, capR * 0.3, 0, 0, Math.PI);
   const shadowGrad = ctx.createLinearGradient(cx, cy, cx, cy + cell * 0.3);
-  shadowGrad.addColorStop(0, 'rgba(0,0,0,0.15)');
+  shadowGrad.addColorStop(0, 'rgba(0,0,0,0.5)');
   shadowGrad.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = shadowGrad;
   ctx.fill();
@@ -1229,7 +1240,7 @@ function drawPoison(ctx, poison) {
   const h = cell * 1.4;      // altezza barile
   const r = 4;               // angolo arrotondato
 
-  // ---- CORPO DEL BARILE (giallo) ----
+  //corpo del barile giallo
   const yellowGrad = ctx.createLinearGradient(cx - w / 2, cy, cx + w / 2, cy);
   yellowGrad.addColorStop(0, '#c90');
   yellowGrad.addColorStop(0.5, '#fc0');
@@ -1243,19 +1254,19 @@ function drawPoison(ctx, poison) {
   ctx.strokeStyle = COLORS.darkGray;
   ctx.stroke();
 
-  // ---- BANDE NERE SOPRA E SOTTO ----
+  //bande nere sopra+sotto
   const bandH = 2;
   ctx.fillStyle = COLORS.black;
   ctx.fillRect(cx - w / 2, cy - h / 2, w, bandH);
   ctx.fillRect(cx - w / 2, cy + h / 2 - bandH, w, bandH);
 
-  // cerchio centrale
+  //cerchio centrale
   ctx.beginPath();
   ctx.arc(cx, cy + cell * 0.1, cell / 2.5, 0, Math.PI * 2);
   ctx.fillStyle = COLORS.black;
   ctx.fill();
   
-  // skull
+  //skull
   ctx.beginPath();
   ctx.fillStyle = COLORS.white;
   ctx.font = `${Math.max(8, cell * 0.5)}px sans-serif`;
@@ -1314,7 +1325,7 @@ function drawBanana(ctx, banana) {
   const cy = banana.y * cell + cell / 2;
   const r = 3 * cell / 5;
 
-  // gradiente giallo caldo
+  //gradiente giallo caldo
   const grad = ctx.createLinearGradient(cx, cy - r, cx, cy + r * 1.5);
   grad.addColorStop(0, '#ff9');
   grad.addColorStop(0.5, '#fd3');
@@ -1324,7 +1335,8 @@ function drawBanana(ctx, banana) {
   ctx.lineWidth = 2;
 
   ctx.beginPath();
-  // curva superiore ampia (più alta)
+  
+  //curva superiore
   ctx.moveTo(cx - r, cy - r / 3);
   ctx.quadraticCurveTo(cx, cy + r * 0.5, cx + r, cy);
   ctx.quadraticCurveTo(cx, cy + r * 1.6, cx - r, cy - r / 10);
@@ -1500,11 +1512,11 @@ function tick() {
   
   //palpebre
   if (eyelidEnabled > 0) eyelidEnabled = eyelidEnabled - 0.2;
-  else eyelidEnabled = Math.random() < (godmodeEffect ? 0.05 : 0.01) ? 2 : 0;
+  else eyelidEnabled = Math.random() < (godmodeEffect ? 0.08 : 0.02) ? 2 : 0;
   
   //occhio da serpente
   if (snakeEyesEnabled > 0) snakeEyesEnabled = snakeEyesEnabled - 0.2;
-  else snakeEyesEnabled = Math.random() < (godmodeEffect ? 0.1 : 0.005) ? 2 : 0;
+  else snakeEyesEnabled = Math.random() < (godmodeEffect ? 0.1 : 0.01) ? 2 : 0;
   
   //controlla collisioni
   let isWallCollision = checkWallCollision(newHead);
@@ -1783,7 +1795,7 @@ function drawAll() {
 function drawStatsArray(ctx, canvas) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   
-  drawBackground(ctx, rows, 7);
+  drawBackground(ctx, statsRows, statsCols);
   
   ctx.font = `${Math.max(8, cell * 0.5)}px sans-serif`;
   ctx.textAlign = 'center';
@@ -1930,9 +1942,12 @@ let minFps = 9999;
 requestAnimationFrame(gameLoop);
 
 function reset() {
-  snake = [ { x: 10, y: 10, oldX: 9, oldY: 10 } ];
+  snake = [ { x: (cols / 3) | 0, 
+			  y: (rows / 3) | 0, 
+			  oldX: ((cols / 3) | 0) - 1, 
+			  oldY: (rows / 3) | 0 } ];
   dir = { x: 1, y: 0 };
-  apples = [];//[ { x: 5, y: 5, type: 0 } ];
+  apples = [];
   spawnObject(apples, 0);
   snakeMinLength = 4;
   
@@ -1948,7 +1963,7 @@ function reset() {
   initSnakePatterns(patternType);
   currentSnakePattern = 0;
   
-  statsArray = [ 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+  statsArray = [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
   applesEaten = [];
   
   inputQueue = [];
