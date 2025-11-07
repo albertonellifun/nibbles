@@ -1914,7 +1914,7 @@ function gameLoop(timestamp) {
     message = message.filter(e => e.dat >= fiveSecondsAgo);
 	let messages = message.map(e => e.msg).join(' - ');
 	
-	gameCtx.fillText('A:\> ' + messages, 2, 10);	
+	gameCtx.fillText('A:\\> ' + messages, 2, 10);	
   }
 
 
