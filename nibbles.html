@@ -91,6 +91,9 @@
   <audio id="dieSound" preload="auto">
 	<source src="./res/die.wav" type="audio/mpeg">
   </audio>
+  <audio id="catSound" preload="auto">
+  	<source src="./res/cat.wav" type="audio/mpeg">
+  </audio>
 <script>
 const gameCanvas = document.getElementById('game');
 const gameCtx = gameCanvas.getContext('2d');
@@ -101,7 +104,7 @@ const padding = 1;//1 cella vuota intorno
 
 const statsCanvas = document.getElementById('stats');
 const statsCtx = statsCanvas.getContext('2d');
-let statsArray = [ 1, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+let statsArray = [ 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 let redrawStats = true;
 
 let bananaGrow = 0;//quando settato il serpente creeesce
@@ -137,6 +140,7 @@ const COLORS = {
 	snakeLight6:'#ff5', snakeDark6:'#aa0', snakeBorder6:'#880', //godmode
 	
 	snakeLight7:'#57f', snakeDark7:'#35d', snakeBorder7:'#14a', //google
+	snakeLight8:'#ba9', snakeDark8:'#322', snakeBorder8:'#000', //rocky graffietto
 	
 	backgroundLight0:'#420', backgroundDark0:'#200', backgroundBorder0:'#640', //brown
 	backgroundLight1:'#024', backgroundDark1:'#002', backgroundBorder1:'#046', //blue
@@ -147,6 +151,7 @@ const COLORS = {
 	backgroundLight6:'#024', backgroundDark6:'#002', backgroundBorder6:'#009', //blue
 	
 	backgroundLight7:'#ad5', backgroundDark7:'#9c4', backgroundBorder7:'#cf7', //google
+	backgroundLight8:'#876', backgroundDark8:'#654', backgroundBorder8:'#5cf', //rocky graffietto
 	
 	brown:'#640',
 	red:'#f00',
@@ -159,31 +164,100 @@ const COLORS = {
 
 //pattern squame
 function createSnakePattern(ctx) {
-  const p = document.createElement('canvas');
-  p.width = p.height = 12;
-  const pctx = p.getContext('2d');
-
+  const patternCanvas = document.createElement('canvas');
+  const pctx = patternCanvas.getContext('2d');
+  const size = 12; // dimensione base delle squame
+  patternCanvas.width = size;
+  patternCanvas.height = size;
+  
+  //sfondo
   pctx.fillStyle = COLORS['snakeDark' + currentSnakePattern];
-  pctx.fillRect(0, 0, 12, 12);
+  pctx.fillRect(0, 0, size, size);
 
+  //squame
   pctx.fillStyle = COLORS['snakeLight' + currentSnakePattern];
-  for (let y = 0; y < 12; y += 6) {
-    for (let x = (y/6)%2===0 ? 0 : 6; x < 12; x += 12) {
+  for (let y = 0; y < size; y += 6) {
+    for (let x = (y/6)%2===0 ? 0 : 6; x < size; x += size) {
       pctx.beginPath();
       pctx.arc(x+3, y+3, 3, 0, Math.PI*2);
       pctx.fill();
     }
   }
-  return ctx.createPattern(p, 'repeat');
+  return ctx.createPattern(patternCanvas, 'repeat');
 }
 
-let snakePattern = [];
-for (let i = 0; i < 8; i++) {
-  currentSnakePattern = i;
-  createSnakePattern(gameCtx);
-  snakePattern.push(createSnakePattern(gameCtx));
+//pattern rombi
+function createSnakePatternSquare(ctx) {
+  const patternCanvas = document.createElement("canvas");
+  const pctx = patternCanvas.getContext("2d");
+  const size = 12; // dimensione base delle squame
+  patternCanvas.width = size;
+  patternCanvas.height = size;
+
+  //sfondo
+  pctx.fillStyle = COLORS['snakeLight' + currentSnakePattern];
+  pctx.fillRect(0, 0, size, size);
+
+  //squama romboidale
+  pctx.beginPath();
+  pctx.moveTo(size / 2, 0);
+  pctx.lineTo(size, size / 2);
+  pctx.lineTo(size / 2, size);
+  pctx.lineTo(0, size / 2);
+  pctx.closePath();
+  pctx.fillStyle = COLORS['snakeDark' + currentSnakePattern];
+  pctx.fill();
+
+  //bordo
+  pctx.strokeStyle = COLORS['snakeBorder' + currentSnakePattern];
+  pctx.lineWidth = 1;
+  pctx.stroke();
+
+  return ctx.createPattern(patternCanvas, "repeat");
 }
-currentSnakePattern = 0;
+
+//pattern palle
+function createSnakePatternBalls(ctx) {
+  const patternCanvas = document.createElement("canvas");
+  const pctx = patternCanvas.getContext("2d");
+  const size = 12; // dimensione base delle squame
+  patternCanvas.width = size;
+  patternCanvas.height = size;
+
+  //sfondo
+  pctx.fillStyle = COLORS["snakeLight" + currentSnakePattern];
+  pctx.fillRect(0, 0, size, size);
+
+  //palla
+  pctx.beginPath();
+  pctx.arc(size / 2, size / 2, size / 2, 0, 2 * Math.PI);
+  pctx.fillStyle = COLORS["snakeDark" + currentSnakePattern];
+  pctx.fill();
+
+  //bordo
+  pctx.strokeStyle = COLORS["snakeBorder" + currentSnakePattern];
+  pctx.lineWidth = 1;
+  pctx.stroke();
+
+  return ctx.createPattern(patternCanvas, "repeat");
+}
+
+
+let snakePattern = [];
+initSnakePatterns();
+
+function initSnakePatterns(type) {
+  snakePattern = []
+  for (let i = 0; i < 9; i++) {
+    currentSnakePattern = i;
+	snakePattern.push(
+		type === 2 ? createSnakePatternBalls(gameCtx) :
+		type === 1 ? createSnakePatternSquare(gameCtx) :
+		createSnakePattern(gameCtx)
+	);
+  }
+  currentSnakePattern = 0;
+}
 
 
 
@@ -259,6 +333,108 @@ function drawSegment(ctx, curr, prev, isLast) {
   
   ctx.restore();
 }
+
+
+//the best siamese cat in the world
+function drawRockyGraffietto(ctx, curr) {
+  const cx = curr.x * cell + cell / 2;
+  const cy = curr.y * cell + cell / 2;
+  const r = 4 * cell / 5;
+  ctx.save();
+  
+  // Colori tipici del siamese
+  const faceColor = "#ba9";  // beige chiaro
+  const maskColor = "#322";  // marrone scuro (muso e orecchie)
+  const eyeColor = "#5cf";   // azzurro
+
+  //testa
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, r, 3 * r / 5, 0, 0, Math.PI * 2);//schiacciata
+  ctx.closePath();
+  ctx.fillStyle = faceColor;
+  ctx.fill();
+  
+  //muso
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + r / 10, 3 * r / 4, 2 * r / 5, 0, 0, Math.PI * 2);
+  ctx.fillStyle = maskColor;
+  ctx.fill();
+  
+  //orecchio sx
+  ctx.beginPath();
+  ctx.moveTo(cx - 45 * r / 50, cy - 10 * r / 50);
+  ctx.lineTo(cx - 50 * r / 50, cy - 50 * r / 50);
+  ctx.lineTo(cx - 15 * r / 50, cy - 25 * r / 50);
+  ctx.closePath();
+  //orecchio dx
+  ctx.moveTo(cx + 45 * r / 50, cy - 10 * r / 50);
+  ctx.lineTo(cx + 50 * r / 50, cy - 50 * r / 50);
+  ctx.lineTo(cx + 15 * r / 50, cy - 25 * r / 50);
+  ctx.closePath();
+  ctx.fillStyle = maskColor;
+  ctx.fill();
+  
+  //occhi
+  ctx.beginPath();
+  ctx.ellipse(cx - 30 * r / 100, cy -5 * r / 100, 14 * r / 100, 14 * r / 100, 0, 0, Math.PI * 2);
+  ctx.ellipse(cx + 30 * r / 100, cy -5 * r / 100, 14 * r / 100, 14 * r / 100, 0, 0, Math.PI * 2);
+  ctx.fillStyle = eyeColor;
+  ctx.fill();
+  
+  //pupille
+  ctx.beginPath();
+  ctx.ellipse(cx - 30 * r / 100, cy - 5 * r / 100, 3 * r / 100, 8 * r / 100, 0, 0, Math.PI * 2);
+  ctx.ellipse(cx + 30 * r / 100, cy - 5 * r / 100, 3 * r / 100, 8 * r / 100, 0, 0, Math.PI * 2);
+  ctx.fillStyle = COLORS.black;
+  ctx.fill();
+  
+  //naso
+  ctx.beginPath();
+  ctx.moveTo(cx - 10 * r / 100, cy + 15 * r / 100);
+  ctx.lineTo(cx + 0 * r / 100, cy + 22 * r / 100);
+  ctx.lineTo(cx + 10 * r / 100, cy + 15 * r / 100);
+  ctx.closePath();
+  ctx.fillStyle = COLORS.black;
+  ctx.fill();
+  
+  //bocca
+  ctx.strokeStyle = faceColor;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(cx + 0, cy + 22 * r / 100);
+  ctx.lineTo(cx + 0, cy + 30 * r / 100);
+  
+  ctx.moveTo(cx + 0, cy + 30 * r / 100);
+  ctx.quadraticCurveTo(cx - 5 * r / 100, cy + 35 * r / 100, cx - 10 * r / 100, cy + 30 * r / 100);
+  
+  ctx.moveTo(cx + 0, cy + 28 * r / 100);
+  ctx.quadraticCurveTo(cx + 5 * r / 100, cy + 35 * r / 100, cx + 10 * r / 100, cy + 30 * r / 100);
+  ctx.stroke();
+
+  // --- Baffi ---
+  ctx.strokeStyle = COLORS.lightGray;
+  ctx.lineWidth = 0.5;
+  ctx.beginPath();
+  // sinistra
+  ctx.moveTo(cx - 10 * r / 100, cy + 20 * r / 100);
+  ctx.lineTo(cx - 60 * r / 100, cy + 15 * r / 100);
+  ctx.moveTo(cx - 10 * r / 100, cy + 24 * r / 100);
+  ctx.lineTo(cx - 60 * r / 100, cy + 25 * r / 100);
+  ctx.moveTo(cx - 10 * r / 100, cy + 28 * r / 100);
+  ctx.lineTo(cx - 60 * r / 100, cy + 35 * r / 100);
+  // destra
+  ctx.moveTo(cx + 10 * r / 100, cy + 20 * r / 100);
+  ctx.lineTo(cx + 60 * r / 100, cy + 15 * r / 100);
+  ctx.moveTo(cx + 10 * r / 100, cy + 24 * r / 100);
+  ctx.lineTo(cx + 60 * r / 100, cy + 25 * r / 100);
+  ctx.moveTo(cx + 10 * r / 100, cy + 28 * r / 100);
+  ctx.lineTo(cx + 60 * r / 100, cy + 35 * r / 100);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+
 
 //testa
 function drawHead(ctx, curr, dir, neck) {
@@ -586,9 +762,9 @@ function drawApple(ctx, apple) {
   //foglietta
   ctx.fillStyle = COLORS.medGreen;
   ctx.beginPath();
-  ctx.moveTo(cx, cy - r - 4);
-  ctx.quadraticCurveTo(cx + 4, cy - r - 4, cx + 8, cy - r - 2);
-  ctx.quadraticCurveTo(cx + 4, cy - r + 1, cx, cy - r - 4);
+  ctx.moveTo(cx, cy - r - 1);
+  ctx.quadraticCurveTo(cx + 4, cy - r - 1, cx + 8, cy - r);
+  ctx.quadraticCurveTo(cx + 4, cy - r + 4, cx, cy - r - 1);
   ctx.fill();
 }
 
@@ -1273,7 +1449,7 @@ document.addEventListener('keydown', e => {
   }
   
   if (e.key === 'X' || e.key === 'x') {
-    if(apples.length < 15) for (let i = 0; i < 10; i++) spawnObject(apples, i%10);
+    if(apples.length < 10) for (let i = 0; i < 11; i++) spawnObject(apples, i%11);
   }
 
   if (newDir) {
@@ -1377,6 +1553,7 @@ function tick() {
 		else if (objectType > 70 && objectType < 75) type = 7; // cocomero
 		else if (objectType > 80 && objectType < 85) type = 8; // paninazzo
 		else if (objectType > 90 && objectType < 95) type = 9; // ciliegie
+		else if (objectType > 95) type = 10;//rocky graffietto
 		if (type !== -1) spawnObject(apples, type);
 		playSound('eatSound');
 	  } else if (apples[i].type === 1) { 
@@ -1474,8 +1651,20 @@ function tick() {
 		//effetti collaterali...
 		statsArray[9]++;
 		godmodeEffect = 60;
-		message.push({msg:'BWUAHUHA... GOD MODE!',dat:Date.now()});
+		message.push({msg:'GOD MODE!',dat:Date.now()});
 		playSound('eatSound');
+	  }	else if (apples[i].type === 10) {
+	    //rocky graffietto
+		apples.splice(i, 1);//rimuove l'elemento i dall'array
+		
+		//effetti collaterali...
+		statsArray[10]++;
+		message.push({msg:'OH NO... ROCKY GRAFFIETTO MODE!',dat:Date.now()});
+		playSound('catSound');
+		for(let i = 0; i < apples.length; i++) {
+		  if (apples[i].type !== 0) apples[i].type = 10;
+		}
+		currentSnakePattern = 8;
 	  }	
     }
   }
@@ -1572,6 +1761,7 @@ function drawAll() {
 	  case 7: drawWatermelon(gameCtx, apples[i]); break;
 	  case 8: drawBurger(gameCtx, apples[i]); break;
 	  case 9: drawCherries(gameCtx, apples[i]); break;
+	  case 10: drawRockyGraffietto(gameCtx, apples[i]); break;
 	}
   }
   
@@ -1603,8 +1793,8 @@ function drawStatsArray(ctx, canvas) {
   ctx.fillText('STATS:', fakeObj.x * cell + 2.5 * cell, fakeObj.y * cell + cell / 2);
   
   let total = 0;
-  for (let type = 0; type < 10; type++) {
-    fakeObj = {x:2, y:(type*2)+3};
+  for (let type = 0; type < 11; type++) {
+    fakeObj = {x:2, y:(type*2)+2};
     switch(type) {
 	  case 0: drawApple(ctx, fakeObj); break;
 	  case 1: drawBanana(ctx, fakeObj); break;
@@ -1616,6 +1806,7 @@ function drawStatsArray(ctx, canvas) {
 	  case 7: drawWatermelon(ctx, fakeObj); break;
 	  case 8: drawBurger(ctx, fakeObj); break;
 	  case 9: drawCherries(ctx, fakeObj); break;
+	  case 10: drawRockyGraffietto(ctx, fakeObj); break;//HIDDEN!!!
 	}
 	ctx.fillStyle = COLORS.white;
     ctx.fillText(statsArray[type], fakeObj.x * cell + 2.5 * cell, fakeObj.y * cell + cell / 2);
@@ -1670,6 +1861,7 @@ function gameLoop(timestamp) {
 	  case 7: drawWatermelon(gameCtx, apples[i]); break;
 	  case 8: drawBurger(gameCtx, apples[i]); break;
 	  case 9: drawCherries(gameCtx, apples[i]); break;
+	  case 10: drawRockyGraffietto(gameCtx, apples[i]); break;
 	}
   }
   
@@ -1706,21 +1898,23 @@ function gameLoop(timestamp) {
     fps = (1000 / delta) | 0;
     if (fps < minFps && fps > 2) minFps = fps;
     statsCtx.fillStyle = COLORS.white;
-    statsCtx.font = '10px monospace';
+    statsCtx.font = `${Math.max(8, cell * 0.5)}px sans-serif`;
 	statsCtx.textAlign = 'left';
+	statsCtx.textBaseline = 'middle';
     statsCtx.fillText(`FPS: ${fps} - min: ${minFps}`, 2, 10);
     lastTime = timestamp;
   }
 
   if (message.length) {
     gameCtx.fillStyle = COLORS.white;
-    gameCtx.font = '10px monospace';
+    gameCtx.font = `${Math.max(8, cell * 0.5)}px sans-serif`;
 	gameCtx.textAlign = 'left';
+	gameCtx.textBaseline = 'middle';
 	const fiveSecondsAgo = Date.now() - 6000;
     message = message.filter(e => e.dat >= fiveSecondsAgo);
-	let messages = message.map(e => e.msg).join(' >>> ');
+	let messages = message.map(e => e.msg).join(' - ');
 	
-	gameCtx.fillText('>>> ' + messages, 2, 10);	
+	gameCtx.fillText('A:\> ' + messages, 2, 10);	
   }
 
 
@@ -1747,13 +1941,19 @@ function reset() {
   skeletorFactor = 1;
   burgerFactor = 1;
   godmodeEffect = 0;
-
+  eyelidEnabled = false;
+  snakeEyesEnabled = false;
+  
+  let patternType = (Math.random() * 3)|0;
+  console.log(patternType);
+  initSnakePatterns(patternType);
   currentSnakePattern = 0;
   
-  statsArray = [ 1, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+  statsArray = [ 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
   applesEaten = [];
   
   inputQueue = [];
+  message = [];
   
   alive = true;
   lastTime = performance.now();
