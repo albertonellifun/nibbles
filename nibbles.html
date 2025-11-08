@@ -158,7 +158,7 @@ const COLORS = {
 	backgroundLight6:'#024', backgroundDark6:'#002', backgroundBorder6:'#009', //blue
 	
 	backgroundLight7:'#ad5', backgroundDark7:'#9c4', backgroundBorder7:'#cf7', //google
-	backgroundLight8:'#876', backgroundDark8:'#654', backgroundBorder8:'#5cf', //rocky graffietto
+	backgroundLight8:'#876', backgroundDark8:'#654', backgroundBorder8:'#0af', //rocky graffietto
 	
 	brown:'#640',
 	red:'#f00',
@@ -350,24 +350,26 @@ function drawRockyGraffietto(ctx, curr) {
   ctx.save();
   
   // Colori tipici del siamese
-  const faceColor = "#ba9";  // beige chiaro
-  const maskColor = "#322";  // marrone scuro (muso e orecchie)
-  const eyeColor = "#5cf";   // azzurro
+  const faceColor = '#ba9';  // beige chiaro
+  const maskColor = '#322';  // marrone scuro (muso e orecchie)
+  const innerEarsColor = '#644'; //marrone piu chiaro dentro le orecchie
+  const eyeColor = '#0af';   // azzurro
   
   //gradiente faccia radiale centrato nella testa
   const headGrad = ctx.createRadialGradient(cx, cy, r * 0.1, cx, cy, r);
-  headGrad.addColorStop(0, "#322");  // centro: leggermente più scuro
-  headGrad.addColorStop(1, "#ba9");  // bordi: più chiari
+  headGrad.addColorStop(0, "#322"); //centro: leggermente più scuro
+  headGrad.addColorStop(1, "#ba9"); //bordi: più chiari
   //gradiente muso radiale centrato
-  const maskGrad = ctx.createRadialGradient(cx, cy + r / 10, //centro
-											r * 0.05,        //raggio interno (dove inizia il nero)
-											cx, cy + r / 10,
-											r * 0.75         // raggio esterno (copre tutto il muso)
-  );
-
-  // Colori del gradiente
-  maskGrad.addColorStop(0, "#222"); // marrone scuro
-  maskGrad.addColorStop(1, "#322");   // marrone più chiaro ai lati
+  const maskGrad = ctx.createRadialGradient(cx, cy + r / 10, r * 0.05, //centro dove inizia il nero
+											cx, cy + r / 10, r * 0.75);// raggio esterno (copre tutto il muso)
+  maskGrad.addColorStop(0, '#222'); //marrone scuro
+  maskGrad.addColorStop(1, '#322'); //marrone più chiaro ai lati
+  
+  const innerEarsGrad = ctx.createRadialGradient(cx, cy - r / 5, 0, //scuro
+												 cx, cy - r, r * 1.5); //chiaro
+  innerEarsGrad.addColorStop(0,   '#322'); //marrone scuro
+  innerEarsGrad.addColorStop(1,   '#644'); //marrone più chiaro ai lati
+  
 
   //testa
   ctx.beginPath();
@@ -396,6 +398,21 @@ function drawRockyGraffietto(ctx, curr) {
   ctx.fillStyle = maskColor;
   ctx.fill();
   
+  //interno orecchio chiaro
+  //orecchio sx
+  ctx.beginPath();
+  ctx.moveTo(cx - 40 * r / 50, cy - 12 * r / 50);
+  ctx.lineTo(cx - 45 * r / 50, cy - 40 * r / 50);
+  ctx.lineTo(cx - 25 * r / 50, cy - 20 * r / 50);
+  ctx.closePath();
+  //orecchio dx
+  ctx.moveTo(cx + 40 * r / 50, cy - 12 * r / 50);
+  ctx.lineTo(cx + 45 * r / 50, cy - 40 * r / 50);
+  ctx.lineTo(cx + 25 * r / 50, cy - 20 * r / 50);
+  ctx.closePath();
+  ctx.fillStyle = innerEarsGrad;//innerEarsColor;
+  ctx.fill();
+  
   //occhi
   ctx.beginPath();
   ctx.ellipse(cx - 30 * r / 100, cy -5 * r / 100, 14 * r / 100, 14 * r / 100, 0, 0, Math.PI * 2);
@@ -409,6 +426,16 @@ function drawRockyGraffietto(ctx, curr) {
   ctx.ellipse(cx + 30 * r / 100, cy - 5 * r / 100, 3 * r / 100, 8 * r / 100, 0, 0, Math.PI * 2);
   ctx.fillStyle = COLORS.black;
   ctx.fill();
+  
+  //riflesso occhi
+  ctx.fillStyle = "rgba(255,255,255,0.5)";
+  ctx.beginPath();
+  ctx.arc(cx - 35 * r / 100, cy - 10 * r / 100, 5 * r / 100, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(cx + 25 * r / 100, cy - 10 * r / 100, 5 * r / 100, 0, Math.PI * 2);
+  ctx.fill();
+  
   
   //naso
   ctx.beginPath();
