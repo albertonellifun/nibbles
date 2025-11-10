@@ -94,6 +94,9 @@
   <audio id="catSound" preload="auto">
   	<source src="./res/cat.wav" type="audio/mpeg">
   </audio>
+  <audio id="purrSound" preload="auto">
+  	<source src="./res/purr.wav" type="audio/mpeg">
+  </audio>
 <script>
 const gameCanvas = document.getElementById('game');
 const gameCtx = gameCanvas.getContext('2d');
@@ -1771,7 +1774,7 @@ function tick() {
 		//effetti collaterali...
 		statsArray[10]++;
 		message.push({msg:'OH NO... ROCKY GRAFFIETTO MODE!',dat:Date.now()});
-		playSound('catSound');
+		playSound(Math.random() < 0.33 ? 'catSound' : 'purrSound'); 
 		for(let i = 0; i < apples.length; i++) {
 		  if (apples[i].type !== 0) apples[i].type = 10;
 		}
