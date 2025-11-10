@@ -351,10 +351,11 @@ function drawRockyGraffietto(ctx, curr) {
   ctx.save();
   
   // Colori tipici del siamese
-  const faceColor = '#ba9';  // beige chiaro
-  const maskColor = '#322';  // marrone scuro (muso e orecchie)
+  const faceColor = '#ba9';  //beige chiaro
+  const maskColor = '#322';  //marrone scuro (muso e orecchie)
   const innerEarsColor = '#644'; //marrone piu chiaro dentro le orecchie
-  const eyeColor = '#0af';   // azzurro
+  const eyeColor = '#0af';   //azzurro
+  const mouthColor = '#b98'; //leggermente rosa
   
   //gradiente faccia radiale centrato nella testa
   const headGrad = ctx.createRadialGradient(cx, cy, r * 0.1, cx, cy, r);
@@ -415,6 +416,15 @@ function drawRockyGraffietto(ctx, curr) {
   ctx.fill();
   
   //occhi
+  tilt = -15 * Math.PI / 180;
+  drawRotatedEllipse(ctx, cx - 30 * r / 100, cy - 5 * r / 100, 20 * r / 100, 12 * r / 100, -tilt, eyeColor);
+  drawRotatedEllipse(ctx, cx + 30 * r / 100, cy - 5 * r / 100, 20 * r / 100, 12 * r / 100, tilt, eyeColor);
+  
+  // ---- Pupille ----
+  drawRotatedEllipse(ctx, cx - 30 * r / 100, cy - 5 * r / 100, 3 * r / 100, 8 * r / 100, -tilt, COLORS.black);
+  drawRotatedEllipse(ctx, cx + 30 * r / 100, cy - 5 * r / 100, 3 * r / 100, 8 * r / 100, tilt, COLORS.black);
+
+/*
   ctx.beginPath();
   ctx.ellipse(cx - 30 * r / 100, cy -5 * r / 100, 20 * r / 100, 12 * r / 100, 0, 0, Math.PI * 2);
   ctx.ellipse(cx + 30 * r / 100, cy -5 * r / 100, 20 * r / 100, 12 * r / 100, 0, 0, Math.PI * 2);
@@ -427,7 +437,7 @@ function drawRockyGraffietto(ctx, curr) {
   ctx.ellipse(cx + 30 * r / 100, cy - 5 * r / 100, 3 * r / 100, 8 * r / 100, 0, 0, Math.PI * 2);
   ctx.fillStyle = COLORS.black;
   ctx.fill();
-  
+*/  
   //riflesso occhi
   ctx.fillStyle = "rgba(255,255,255,0.5)";
   ctx.beginPath();
@@ -448,7 +458,7 @@ function drawRockyGraffietto(ctx, curr) {
   ctx.fill();
   
   //bocca
-  ctx.strokeStyle = faceColor;
+  ctx.strokeStyle = mouthColor;//faceColor;
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(cx + 0, cy + 25 * r / 100);
@@ -501,6 +511,17 @@ function drawRockyGraffietto(ctx, curr) {
   ctx.restore();
 }
 
+//per gli occhi e le pupille
+function drawRotatedEllipse(ctx, x, y, rx, ry, rotation, color) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rotation);
+  ctx.beginPath();
+  ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.restore();
+}
 
 
 //testa
@@ -788,6 +809,24 @@ function drawHead(ctx, curr, dir, neck) {
       ctx.arc(x - gemRadius / 3, y - gemRadius, gemRadius / 3, 0, Math.PI * 2);
       ctx.fill();
     }
+	//gemme sulla corona
+	for (let i = 0; i < tipPositions.length; i++) {
+      const x = - tipPositions[i];
+      const y = - 2 * height / 3 + tipHeight;
+      ctx.fillStyle = gemColors[i];
+      ctx.beginPath();
+      ctx.arc(x, y - gemRadius * 0.6, gemRadius, 0, Math.PI * 2);
+      ctx.fill();
+	  ctx.strokeStyle = COLORS.white;
+	  ctx.arc(x, y - gemRadius * 0.6, gemRadius * 1.2, 0, Math.PI * 2);
+	  ctx.stroke();
+	
+      // riflesso bianco
+      ctx.fillStyle = "rgba(255,255,255,0.6)";
+      ctx.beginPath();
+      ctx.arc(x - gemRadius / 3, y - gemRadius, gemRadius / 3, 0, Math.PI * 2);
+      ctx.fill();
+	}
   
     ctx.restore();
   }
@@ -1399,7 +1438,7 @@ function drawBanana(ctx, banana) {
   // ellisse blu
   ctx.beginPath();
   ctx.ellipse(stickerX, stickerY, stickerW, stickerH, 0, 0, Math.PI * 2);
-  ctx.fillStyle = COLORS.blue;//'#05b';
+  ctx.fillStyle = COLORS.blue;
   ctx.fill();
   ctx.lineWidth = 1;
   ctx.strokeStyle = COLORS.white;
