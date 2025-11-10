@@ -362,13 +362,13 @@ function drawRockyGraffietto(ctx, curr) {
   //gradiente muso radiale centrato
   const maskGrad = ctx.createRadialGradient(cx, cy + r / 10, r * 0.05, //centro dove inizia il nero
 											cx, cy + r / 10, r * 0.75);// raggio esterno (copre tutto il muso)
-  maskGrad.addColorStop(0, '#222'); //marrone scuro
-  maskGrad.addColorStop(1, '#322'); //marrone più chiaro ai lati
+  maskGrad.addColorStop(0, '#322'); //marrone scuro
+  maskGrad.addColorStop(1, '#433'); //marrone più chiaro ai lati
   
   const innerEarsGrad = ctx.createRadialGradient(cx, cy - r / 5, 0, //scuro
 												 cx, cy - r, r * 1.5); //chiaro
   innerEarsGrad.addColorStop(0,   '#322'); //marrone scuro
-  innerEarsGrad.addColorStop(1,   '#644'); //marrone più chiaro ai lati
+  innerEarsGrad.addColorStop(1,   '#844'); //marrone più chiaro ai lati
   
 
   //testa
@@ -415,8 +415,8 @@ function drawRockyGraffietto(ctx, curr) {
   
   //occhi
   ctx.beginPath();
-  ctx.ellipse(cx - 30 * r / 100, cy -5 * r / 100, 14 * r / 100, 14 * r / 100, 0, 0, Math.PI * 2);
-  ctx.ellipse(cx + 30 * r / 100, cy -5 * r / 100, 14 * r / 100, 14 * r / 100, 0, 0, Math.PI * 2);
+  ctx.ellipse(cx - 30 * r / 100, cy -5 * r / 100, 20 * r / 100, 12 * r / 100, 0, 0, Math.PI * 2);
+  ctx.ellipse(cx + 30 * r / 100, cy -5 * r / 100, 20 * r / 100, 12 * r / 100, 0, 0, Math.PI * 2);
   ctx.fillStyle = eyeColor;
   ctx.fill();
   
@@ -440,7 +440,7 @@ function drawRockyGraffietto(ctx, curr) {
   //naso
   ctx.beginPath();
   ctx.moveTo(cx - 10 * r / 100, cy + 15 * r / 100);
-  ctx.lineTo(cx + 0 * r / 100, cy + 22 * r / 100);
+  ctx.lineTo(cx + 0 * r / 100, cy + 25 * r / 100);
   ctx.lineTo(cx + 10 * r / 100, cy + 15 * r / 100);
   ctx.closePath();
   ctx.fillStyle = COLORS.black;
@@ -450,7 +450,7 @@ function drawRockyGraffietto(ctx, curr) {
   ctx.strokeStyle = faceColor;
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(cx + 0, cy + 22 * r / 100);
+  ctx.moveTo(cx + 0, cy + 25 * r / 100);
   ctx.lineTo(cx + 0, cy + 30 * r / 100);
   
   ctx.moveTo(cx + 0, cy + 30 * r / 100);
@@ -460,10 +460,11 @@ function drawRockyGraffietto(ctx, curr) {
   ctx.quadraticCurveTo(cx + 5 * r / 100, cy + 35 * r / 100, cx + 10 * r / 100, cy + 30 * r / 100);
   ctx.stroke();
 
-  // --- Baffi ---
+  //baffi dritti
   ctx.strokeStyle = COLORS.lightGray;
   ctx.lineWidth = 0.5;
   ctx.beginPath();
+  /*
   // sinistra
   ctx.moveTo(cx - 10 * r / 100, cy + 20 * r / 100);
   ctx.lineTo(cx - 60 * r / 100, cy + 15 * r / 100);
@@ -479,7 +480,23 @@ function drawRockyGraffietto(ctx, curr) {
   ctx.moveTo(cx + 10 * r / 100, cy + 28 * r / 100);
   ctx.lineTo(cx + 60 * r / 100, cy + 35 * r / 100);
   ctx.stroke();
-
+  */
+  //baffi arcuati
+  //sx
+            ctx.moveTo(cx - 12 * r / 100, cy + 20 * r / 100);
+  ctx.quadraticCurveTo(cx - 50 * r / 100, cy + 5 * r / 100, cx - 70 * r / 100, cy + 40 * r / 100);
+            ctx.moveTo(cx - 10 * r / 100, cy + 24 * r / 100);
+  ctx.quadraticCurveTo(cx - 50 * r / 100, cy + 10 * r / 100, cx - 50 * r / 100, cy + 50 * r / 100);            
+			ctx.moveTo(cx - 12 * r / 100, cy + 28 * r / 100);
+  ctx.quadraticCurveTo(cx - 50 * r / 100, cy + 15 * r / 100, cx - 30 * r / 100, cy + 60 * r / 100);
+  //dx
+            ctx.moveTo(cx + 12 * r / 100, cy + 20 * r / 100);
+  ctx.quadraticCurveTo(cx + 50 * r / 100, cy + 5 * r / 100, cx + 70 * r / 100, cy + 40 * r / 100);
+            ctx.moveTo(cx + 10 * r / 100, cy + 24 * r / 100);
+  ctx.quadraticCurveTo(cx + 50 * r / 100, cy + 10 * r / 100, cx + 50 * r / 100, cy + 50 * r / 100);
+			ctx.moveTo(cx + 12 * r / 100, cy + 28 * r / 100);
+  ctx.quadraticCurveTo(cx + 50 * r / 100, cy + 15 * r / 100, cx + 30 * r / 100, cy + 60 * r / 100);
+  ctx.stroke();
   ctx.restore();
 }
 
