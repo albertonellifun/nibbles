@@ -164,6 +164,7 @@ const COLORS = {
 	red:'#f00',
 	white:'#fff',				 
 	black:'#000',
+	blue:'#05b',
 	gray:'#666', lightGray:'#9aa', medGray:'#999', darkGray:'#222',
 	green:'#6f6', medGreen: '#3a3', darkGreen: '#181',
 	appleRedLight:'#f66', appleRedMed:'#c00', appleRedDark:'#600',
@@ -1387,6 +1388,21 @@ function drawBanana(ctx, banana) {
   
   ctx.closePath();
   ctx.fill();
+  ctx.stroke();
+  
+  //banana chiquita!
+  const stickerX = cx;
+  const stickerY = cy + r * 0.35;
+  const stickerW = r * 0.25;
+  const stickerH = r * 0.15;
+
+  // ellisse blu
+  ctx.beginPath();
+  ctx.ellipse(stickerX, stickerY, stickerW, stickerH, 0, 0, Math.PI * 2);
+  ctx.fillStyle = COLORS.blue;//'#05b';
+  ctx.fill();
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = COLORS.white;
   ctx.stroke();
 }
 
