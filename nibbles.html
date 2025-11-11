@@ -94,13 +94,13 @@
   
   <h1 onclick="reset()">NIBBLES / SNAKE CLONE</h1>
   <div id="game-container">
-    <canvas id="game"  width="400" height="500"></canvas>
+    <canvas id="game"  width="500" height="500"></canvas>
     <canvas id="stats" width="140" height="500"></canvas>
   </div>
 <script>
 const gameCanvas = document.getElementById('game');
 const gameCtx = gameCanvas.getContext('2d');
-const cols = 20;
+const cols = 25;
 const rows = 25;
 const cell = Math.min(gameCanvas.width / cols, gameCanvas.height / rows);//20
 const padding = 1;//1 cella vuota intorno
