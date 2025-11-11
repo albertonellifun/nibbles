@@ -67,40 +67,40 @@
 </style>
 </head>
 <body>
-  <h1 onclick="reset()">NIBBLES / SNAKE CLONE</h1>
-  <div id="game-container">
-    <canvas id="game"  width="500" height="500"></canvas>
-    <canvas id="stats" width="140" height="500"></canvas>
-  </div>
-  
   <audio id="eatSound" preload="auto">
-	<source src="./res/eat.wav" type="audio/mpeg">
+	<source src="./res/eat.wav" type="audio/wav">
   </audio>
   <audio id="turn1Sound" preload="auto">
-	<source src="./res/turn1.wav" type="audio/mpeg">
+	<source src="./res/turn1.wav" type="audio/wav">
   </audio>
   <audio id="turn2Sound" preload="auto">
-	<source src="./res/turn2.wav" type="audio/mpeg">
+	<source src="./res/turn2.wav" type="audio/wav">
   </audio>
   <audio id="turn3Sound" preload="auto">
-	<source src="./res/turn3.wav" type="audio/mpeg">
+	<source src="./res/turn3.wav" type="audio/wav">
   </audio>
   <audio id="turn4Sound" preload="auto">
-	<source src="./res/turn4.wav" type="audio/mpeg">
+	<source src="./res/turn4.wav" type="audio/wav">
   </audio>
   <audio id="dieSound" preload="auto">
-	<source src="./res/die.wav" type="audio/mpeg">
+	<source src="./res/die.wav" type="audio/wav">
   </audio>
   <audio id="catSound" preload="auto">
-  	<source src="./res/cat.wav" type="audio/mpeg">
+  	<source src="./res/cat.wav" type="audio/wav">
   </audio>
   <audio id="purrSound" preload="auto">
-  	<source src="./res/purr.wav" type="audio/mpeg">
+  	<source src="./res/purr.wav" type="audio/wav">
   </audio>
+  
+  <h1 onclick="reset()">NIBBLES / SNAKE CLONE</h1>
+  <div id="game-container">
+    <canvas id="game"  width="400" height="500"></canvas>
+    <canvas id="stats" width="140" height="500"></canvas>
+  </div>
 <script>
 const gameCanvas = document.getElementById('game');
 const gameCtx = gameCanvas.getContext('2d');
-const cols = 25;
+const cols = 20;
 const rows = 25;
 const cell = Math.min(gameCanvas.width / cols, gameCanvas.height / rows);//20
 const padding = 1;//1 cella vuota intorno
@@ -344,188 +344,6 @@ function drawSegment(ctx, curr, prev, isLast) {
   
   ctx.restore();
 }
-
-
-//the best siamese cat in the world
-function drawRockyGraffietto(ctx, curr) {
-  const cx = curr.x * cell + cell / 2;
-  const cy = curr.y * cell + cell / 2;
-  const r = 4 * cell / 5;
-  ctx.save();
-  
-  // Colori tipici del siamese
-  const faceColor = '#ba9';  //beige chiaro
-  const maskColor = '#322';  //marrone scuro (muso e orecchie)
-  const innerEarsColor = '#644'; //marrone piu chiaro dentro le orecchie
-  const eyeColor = '#0af';   //azzurro
-  const mouthColor = '#b98'; //leggermente rosa
-  
-  //gradiente faccia radiale centrato nella testa
-  const headGrad = ctx.createRadialGradient(cx, cy, r * 0.1, cx, cy, r);
-  headGrad.addColorStop(0, "#322"); //centro: leggermente più scuro
-  headGrad.addColorStop(1, "#ba9"); //bordi: più chiari
-  //gradiente muso radiale centrato
-  const maskGrad = ctx.createRadialGradient(cx, cy + r / 10, r * 0.05, //centro dove inizia il nero
-											cx, cy + r / 10, r * 0.75);// raggio esterno (copre tutto il muso)
-  maskGrad.addColorStop(0, '#322'); //marrone scuro
-  maskGrad.addColorStop(1, '#433'); //marrone più chiaro ai lati
-  
-  const innerEarsGrad = ctx.createRadialGradient(cx, cy - r / 5, 0, //scuro
-												 cx, cy - r, r * 1.5); //chiaro
-  innerEarsGrad.addColorStop(0,   '#322'); //marrone scuro
-  innerEarsGrad.addColorStop(1,   '#844'); //marrone più chiaro ai lati
-  
-
-  //testa
-  ctx.beginPath();
-  ctx.ellipse(cx, cy, r, 3 * r / 5, 0, 0, Math.PI * 2);//schiacciata
-  ctx.closePath();
-  ctx.fillStyle = headGrad;//faceColor;
-  ctx.fill();
-  
-  //muso
-  ctx.beginPath();
-  ctx.ellipse(cx, cy + r / 10, 3 * r / 4, 2 * r / 5, 0, 0, Math.PI * 2);
-  ctx.fillStyle = maskGrad;//maskColor;
-  ctx.fill();
-  
-  //orecchio sx
-  ctx.beginPath();
-  ctx.moveTo(cx - 45 * r / 50, cy - 10 * r / 50);
-  ctx.lineTo(cx - 50 * r / 50, cy - 50 * r / 50);
-  ctx.lineTo(cx - 15 * r / 50, cy - 25 * r / 50);
-  ctx.closePath();
-  //orecchio dx
-  ctx.moveTo(cx + 45 * r / 50, cy - 10 * r / 50);
-  ctx.lineTo(cx + 50 * r / 50, cy - 50 * r / 50);
-  ctx.lineTo(cx + 15 * r / 50, cy - 25 * r / 50);
-  ctx.closePath();
-  ctx.fillStyle = maskColor;
-  ctx.fill();
-  
-  //interno orecchio chiaro
-  //orecchio sx
-  ctx.beginPath();
-  ctx.moveTo(cx - 40 * r / 50, cy - 12 * r / 50);
-  ctx.lineTo(cx - 45 * r / 50, cy - 40 * r / 50);
-  ctx.lineTo(cx - 25 * r / 50, cy - 20 * r / 50);
-  ctx.closePath();
-  //orecchio dx
-  ctx.moveTo(cx + 40 * r / 50, cy - 12 * r / 50);
-  ctx.lineTo(cx + 45 * r / 50, cy - 40 * r / 50);
-  ctx.lineTo(cx + 25 * r / 50, cy - 20 * r / 50);
-  ctx.closePath();
-  ctx.fillStyle = innerEarsGrad;//innerEarsColor;
-  ctx.fill();
-  
-  //occhi
-  tilt = -15 * Math.PI / 180;
-  drawRotatedEllipse(ctx, cx - 30 * r / 100, cy - 5 * r / 100, 20 * r / 100, 12 * r / 100, -tilt, eyeColor);
-  drawRotatedEllipse(ctx, cx + 30 * r / 100, cy - 5 * r / 100, 20 * r / 100, 12 * r / 100, tilt, eyeColor);
-  
-  // ---- Pupille ----
-  drawRotatedEllipse(ctx, cx - 30 * r / 100, cy - 5 * r / 100, 3 * r / 100, 8 * r / 100, -tilt, COLORS.black);
-  drawRotatedEllipse(ctx, cx + 30 * r / 100, cy - 5 * r / 100, 3 * r / 100, 8 * r / 100, tilt, COLORS.black);
-
-/*
-  ctx.beginPath();
-  ctx.ellipse(cx - 30 * r / 100, cy -5 * r / 100, 20 * r / 100, 12 * r / 100, 0, 0, Math.PI * 2);
-  ctx.ellipse(cx + 30 * r / 100, cy -5 * r / 100, 20 * r / 100, 12 * r / 100, 0, 0, Math.PI * 2);
-  ctx.fillStyle = eyeColor;
-  ctx.fill();
-  
-  //pupille
-  ctx.beginPath();
-  ctx.ellipse(cx - 30 * r / 100, cy - 5 * r / 100, 3 * r / 100, 8 * r / 100, 0, 0, Math.PI * 2);
-  ctx.ellipse(cx + 30 * r / 100, cy - 5 * r / 100, 3 * r / 100, 8 * r / 100, 0, 0, Math.PI * 2);
-  ctx.fillStyle = COLORS.black;
-  ctx.fill();
-*/  
-  //riflesso occhi
-  ctx.fillStyle = "rgba(255,255,255,0.5)";
-  ctx.beginPath();
-  ctx.arc(cx - 35 * r / 100, cy - 10 * r / 100, 5 * r / 100, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.arc(cx + 25 * r / 100, cy - 10 * r / 100, 5 * r / 100, 0, Math.PI * 2);
-  ctx.fill();
-  
-  
-  //naso
-  ctx.beginPath();
-  ctx.moveTo(cx - 10 * r / 100, cy + 15 * r / 100);
-  ctx.lineTo(cx + 0 * r / 100, cy + 25 * r / 100);
-  ctx.lineTo(cx + 10 * r / 100, cy + 15 * r / 100);
-  ctx.closePath();
-  ctx.fillStyle = COLORS.black;
-  ctx.fill();
-  
-  //bocca
-  ctx.strokeStyle = mouthColor;//faceColor;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(cx + 0, cy + 25 * r / 100);
-  ctx.lineTo(cx + 0, cy + 30 * r / 100);
-  
-  ctx.moveTo(cx + 0, cy + 30 * r / 100);
-  ctx.quadraticCurveTo(cx - 5 * r / 100, cy + 35 * r / 100, cx - 10 * r / 100, cy + 30 * r / 100);
-  
-  ctx.moveTo(cx + 0, cy + 28 * r / 100);
-  ctx.quadraticCurveTo(cx + 5 * r / 100, cy + 35 * r / 100, cx + 10 * r / 100, cy + 30 * r / 100);
-  ctx.stroke();
-
-  //baffi dritti
-  ctx.strokeStyle = COLORS.lightGray;
-  ctx.lineWidth = 0.5;
-  ctx.beginPath();
-  /*
-  // sinistra
-  ctx.moveTo(cx - 10 * r / 100, cy + 20 * r / 100);
-  ctx.lineTo(cx - 60 * r / 100, cy + 15 * r / 100);
-  ctx.moveTo(cx - 10 * r / 100, cy + 24 * r / 100);
-  ctx.lineTo(cx - 60 * r / 100, cy + 25 * r / 100);
-  ctx.moveTo(cx - 10 * r / 100, cy + 28 * r / 100);
-  ctx.lineTo(cx - 60 * r / 100, cy + 35 * r / 100);
-  // destra
-  ctx.moveTo(cx + 10 * r / 100, cy + 20 * r / 100);
-  ctx.lineTo(cx + 60 * r / 100, cy + 15 * r / 100);
-  ctx.moveTo(cx + 10 * r / 100, cy + 24 * r / 100);
-  ctx.lineTo(cx + 60 * r / 100, cy + 25 * r / 100);
-  ctx.moveTo(cx + 10 * r / 100, cy + 28 * r / 100);
-  ctx.lineTo(cx + 60 * r / 100, cy + 35 * r / 100);
-  ctx.stroke();
-  */
-  //baffi arcuati
-  //sx
-            ctx.moveTo(cx - 12 * r / 100, cy + 20 * r / 100);
-  ctx.quadraticCurveTo(cx - 50 * r / 100, cy + 5 * r / 100, cx - 70 * r / 100, cy + 40 * r / 100);
-            ctx.moveTo(cx - 10 * r / 100, cy + 24 * r / 100);
-  ctx.quadraticCurveTo(cx - 50 * r / 100, cy + 10 * r / 100, cx - 50 * r / 100, cy + 50 * r / 100);            
-			ctx.moveTo(cx - 12 * r / 100, cy + 28 * r / 100);
-  ctx.quadraticCurveTo(cx - 50 * r / 100, cy + 15 * r / 100, cx - 30 * r / 100, cy + 60 * r / 100);
-  //dx
-            ctx.moveTo(cx + 12 * r / 100, cy + 20 * r / 100);
-  ctx.quadraticCurveTo(cx + 50 * r / 100, cy + 5 * r / 100, cx + 70 * r / 100, cy + 40 * r / 100);
-            ctx.moveTo(cx + 10 * r / 100, cy + 24 * r / 100);
-  ctx.quadraticCurveTo(cx + 50 * r / 100, cy + 10 * r / 100, cx + 50 * r / 100, cy + 50 * r / 100);
-			ctx.moveTo(cx + 12 * r / 100, cy + 28 * r / 100);
-  ctx.quadraticCurveTo(cx + 50 * r / 100, cy + 15 * r / 100, cx + 30 * r / 100, cy + 60 * r / 100);
-  ctx.stroke();
-  ctx.restore();
-}
-
-//per gli occhi e le pupille
-function drawRotatedEllipse(ctx, x, y, rx, ry, rotation, color) {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.rotate(rotation);
-  ctx.beginPath();
-  ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
-  ctx.fillStyle = color;
-  ctx.fill();
-  ctx.restore();
-}
-
 
 //testa
 function drawHead(ctx, curr, dir, neck) {
@@ -835,6 +653,188 @@ function drawHead(ctx, curr, dir, neck) {
   }
 }
 
+
+
+//the best siamese cat in the world
+function drawRockyGraffietto(ctx, curr) {
+  const cx = curr.x * cell + cell / 2;
+  const cy = curr.y * cell + cell / 2;
+  const r = 4 * cell / 5;
+  ctx.save();
+  
+  // Colori tipici del siamese
+  const faceColor = '#ba9';  //beige chiaro
+  const maskColor = '#322';  //marrone scuro (muso e orecchie)
+  const innerEarsColor = '#644'; //marrone piu chiaro dentro le orecchie
+  const eyeColor = '#0af';   //azzurro
+  const mouthColor = '#b98'; //leggermente rosa
+  
+  //gradiente faccia radiale centrato nella testa
+  const headGrad = ctx.createRadialGradient(cx, cy, r * 0.1, cx, cy, r);
+  headGrad.addColorStop(0, "#322"); //centro: leggermente più scuro
+  headGrad.addColorStop(1, "#ba9"); //bordi: più chiari
+  //gradiente muso radiale centrato
+  const maskGrad = ctx.createRadialGradient(cx, cy + r / 10, r * 0.05, //centro dove inizia il nero
+											cx, cy + r / 10, r * 0.75);// raggio esterno (copre tutto il muso)
+  maskGrad.addColorStop(0, '#322'); //marrone scuro
+  maskGrad.addColorStop(1, '#433'); //marrone più chiaro ai lati
+  
+  const innerEarsGrad = ctx.createRadialGradient(cx, cy - r / 5, 0, //scuro
+												 cx, cy - r, r * 1.5); //chiaro
+  innerEarsGrad.addColorStop(0,   '#322'); //marrone scuro
+  innerEarsGrad.addColorStop(1,   '#844'); //marrone più chiaro ai lati
+  
+
+  //testa
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, r, 3 * r / 5, 0, 0, Math.PI * 2);//schiacciata
+  ctx.closePath();
+  ctx.fillStyle = headGrad;//faceColor;
+  ctx.fill();
+  
+  //muso
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + r / 10, 3 * r / 4, 2 * r / 5, 0, 0, Math.PI * 2);
+  ctx.fillStyle = maskGrad;//maskColor;
+  ctx.fill();
+  
+  //orecchio sx
+  ctx.beginPath();
+  ctx.moveTo(cx - 45 * r / 50, cy - 10 * r / 50);
+  ctx.lineTo(cx - 50 * r / 50, cy - 50 * r / 50);
+  ctx.lineTo(cx - 15 * r / 50, cy - 25 * r / 50);
+  ctx.closePath();
+  //orecchio dx
+  ctx.moveTo(cx + 45 * r / 50, cy - 10 * r / 50);
+  ctx.lineTo(cx + 50 * r / 50, cy - 50 * r / 50);
+  ctx.lineTo(cx + 15 * r / 50, cy - 25 * r / 50);
+  ctx.closePath();
+  ctx.fillStyle = maskColor;
+  ctx.fill();
+  
+  //interno orecchio chiaro
+  //orecchio sx
+  ctx.beginPath();
+  ctx.moveTo(cx - 40 * r / 50, cy - 12 * r / 50);
+  ctx.lineTo(cx - 45 * r / 50, cy - 40 * r / 50);
+  ctx.lineTo(cx - 25 * r / 50, cy - 20 * r / 50);
+  ctx.closePath();
+  //orecchio dx
+  ctx.moveTo(cx + 40 * r / 50, cy - 12 * r / 50);
+  ctx.lineTo(cx + 45 * r / 50, cy - 40 * r / 50);
+  ctx.lineTo(cx + 25 * r / 50, cy - 20 * r / 50);
+  ctx.closePath();
+  ctx.fillStyle = innerEarsGrad;//innerEarsColor;
+  ctx.fill();
+  
+  //occhi
+  tilt = -15 * Math.PI / 180;
+  drawRotatedEllipse(ctx, cx - 30 * r / 100, cy - 5 * r / 100, 20 * r / 100, 12 * r / 100, -tilt, eyeColor);
+  drawRotatedEllipse(ctx, cx + 30 * r / 100, cy - 5 * r / 100, 20 * r / 100, 12 * r / 100, tilt, eyeColor);
+  
+  // ---- Pupille ----
+  drawRotatedEllipse(ctx, cx - 30 * r / 100, cy - 5 * r / 100, 3 * r / 100, 8 * r / 100, -tilt, COLORS.black);
+  drawRotatedEllipse(ctx, cx + 30 * r / 100, cy - 5 * r / 100, 3 * r / 100, 8 * r / 100, tilt, COLORS.black);
+
+/*
+  ctx.beginPath();
+  ctx.ellipse(cx - 30 * r / 100, cy -5 * r / 100, 20 * r / 100, 12 * r / 100, 0, 0, Math.PI * 2);
+  ctx.ellipse(cx + 30 * r / 100, cy -5 * r / 100, 20 * r / 100, 12 * r / 100, 0, 0, Math.PI * 2);
+  ctx.fillStyle = eyeColor;
+  ctx.fill();
+  
+  //pupille
+  ctx.beginPath();
+  ctx.ellipse(cx - 30 * r / 100, cy - 5 * r / 100, 3 * r / 100, 8 * r / 100, 0, 0, Math.PI * 2);
+  ctx.ellipse(cx + 30 * r / 100, cy - 5 * r / 100, 3 * r / 100, 8 * r / 100, 0, 0, Math.PI * 2);
+  ctx.fillStyle = COLORS.black;
+  ctx.fill();
+*/  
+  //riflesso occhi
+  ctx.fillStyle = "rgba(255,255,255,0.5)";
+  ctx.beginPath();
+  ctx.arc(cx - 35 * r / 100, cy - 10 * r / 100, 5 * r / 100, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(cx + 25 * r / 100, cy - 10 * r / 100, 5 * r / 100, 0, Math.PI * 2);
+  ctx.fill();
+  
+  
+  //naso
+  ctx.beginPath();
+  ctx.moveTo(cx - 10 * r / 100, cy + 15 * r / 100);
+  ctx.lineTo(cx + 0 * r / 100, cy + 25 * r / 100);
+  ctx.lineTo(cx + 10 * r / 100, cy + 15 * r / 100);
+  ctx.closePath();
+  ctx.fillStyle = COLORS.black;
+  ctx.fill();
+  
+  //bocca
+  ctx.strokeStyle = mouthColor;//faceColor;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(cx + 0, cy + 25 * r / 100);
+  ctx.lineTo(cx + 0, cy + 30 * r / 100);
+  
+  ctx.moveTo(cx + 0, cy + 30 * r / 100);
+  ctx.quadraticCurveTo(cx - 5 * r / 100, cy + 35 * r / 100, cx - 10 * r / 100, cy + 30 * r / 100);
+  
+  ctx.moveTo(cx + 0, cy + 28 * r / 100);
+  ctx.quadraticCurveTo(cx + 5 * r / 100, cy + 35 * r / 100, cx + 10 * r / 100, cy + 30 * r / 100);
+  ctx.stroke();
+
+  //baffi dritti
+  ctx.strokeStyle = COLORS.lightGray;
+  ctx.lineWidth = 0.5;
+  ctx.beginPath();
+  /*
+  // sinistra
+  ctx.moveTo(cx - 10 * r / 100, cy + 20 * r / 100);
+  ctx.lineTo(cx - 60 * r / 100, cy + 15 * r / 100);
+  ctx.moveTo(cx - 10 * r / 100, cy + 24 * r / 100);
+  ctx.lineTo(cx - 60 * r / 100, cy + 25 * r / 100);
+  ctx.moveTo(cx - 10 * r / 100, cy + 28 * r / 100);
+  ctx.lineTo(cx - 60 * r / 100, cy + 35 * r / 100);
+  // destra
+  ctx.moveTo(cx + 10 * r / 100, cy + 20 * r / 100);
+  ctx.lineTo(cx + 60 * r / 100, cy + 15 * r / 100);
+  ctx.moveTo(cx + 10 * r / 100, cy + 24 * r / 100);
+  ctx.lineTo(cx + 60 * r / 100, cy + 25 * r / 100);
+  ctx.moveTo(cx + 10 * r / 100, cy + 28 * r / 100);
+  ctx.lineTo(cx + 60 * r / 100, cy + 35 * r / 100);
+  ctx.stroke();
+  */
+  //baffi arcuati
+  //sx
+            ctx.moveTo(cx - 12 * r / 100, cy + 20 * r / 100);
+  ctx.quadraticCurveTo(cx - 50 * r / 100, cy + 5 * r / 100, cx - 70 * r / 100, cy + 40 * r / 100);
+            ctx.moveTo(cx - 10 * r / 100, cy + 24 * r / 100);
+  ctx.quadraticCurveTo(cx - 50 * r / 100, cy + 10 * r / 100, cx - 50 * r / 100, cy + 50 * r / 100);            
+			ctx.moveTo(cx - 12 * r / 100, cy + 28 * r / 100);
+  ctx.quadraticCurveTo(cx - 50 * r / 100, cy + 15 * r / 100, cx - 30 * r / 100, cy + 60 * r / 100);
+  //dx
+            ctx.moveTo(cx + 12 * r / 100, cy + 20 * r / 100);
+  ctx.quadraticCurveTo(cx + 50 * r / 100, cy + 5 * r / 100, cx + 70 * r / 100, cy + 40 * r / 100);
+            ctx.moveTo(cx + 10 * r / 100, cy + 24 * r / 100);
+  ctx.quadraticCurveTo(cx + 50 * r / 100, cy + 10 * r / 100, cx + 50 * r / 100, cy + 50 * r / 100);
+			ctx.moveTo(cx + 12 * r / 100, cy + 28 * r / 100);
+  ctx.quadraticCurveTo(cx + 50 * r / 100, cy + 15 * r / 100, cx + 30 * r / 100, cy + 60 * r / 100);
+  ctx.stroke();
+  ctx.restore();
+}
+
+//per gli occhi e le pupille
+function drawRotatedEllipse(ctx, x, y, rx, ry, rotation, color) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rotation);
+  ctx.beginPath();
+  ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.restore();
+}
+
 //mela
 function drawApple(ctx, apple) {
   const cx = apple.x * cell + cell / 2;
@@ -871,11 +871,14 @@ function drawApple(ctx, apple) {
   //foglietta
   ctx.fillStyle = COLORS.medGreen;
   ctx.beginPath();
-  ctx.moveTo(cx, cy - r - 1);
-  ctx.quadraticCurveTo(cx + 4, cy - r - 1, cx + 8, cy - r);
-  ctx.quadraticCurveTo(cx + 4, cy - r + 4, cx, cy - r - 1);
+			ctx.moveTo(cx + 0, cy - r - 1);
+  ctx.quadraticCurveTo(cx + 4, cy - r - 2, 
+					   cx + 9, cy - r + 2);
+  ctx.quadraticCurveTo(cx + 4, cy - r + 6, 
+					   cx + 0, cy - r - 1);
   ctx.fill();
 }
+
 
 //w la zucca
 function drawPumpkin(ctx, pumpkin) {
@@ -949,7 +952,6 @@ function drawPumpkin(ctx, pumpkin) {
   ctx.closePath();
   ctx.fill();
 }
-
 
 
 //bombetta
@@ -1032,6 +1034,7 @@ function drawBomb(ctx, bomb) {
   ctx.closePath();
 }
 
+
 //granata
 function drawGrenade(ctx, grenade) {
   const cx = grenade.x * cell + cell / 2;
@@ -1113,7 +1116,7 @@ function drawGrenade(ctx, grenade) {
 function drawBurger(ctx, burger) {
   const cx = burger.x * cell + cell / 2;
   const cy = burger.y * cell + cell / 2;
-  const r = cell * 0.60;
+  const r = 3 * cell / 5;
   const tilt = -Math.PI / 15;//inclinazione
 
   ctx.save();
@@ -1180,12 +1183,13 @@ function drawBurger(ctx, burger) {
   ctx.restore();
 }
 
+
 //cocomero
 function drawWatermelon(ctx, slice) {
   const cx = slice.x * cell + cell / 2;
   const cy = slice.y * cell + cell / 2;
-  const r = cell * 0.6;          //raggio fetta
-  const tilt = 6 * Math.PI / 5;  //inclinazione (negativo = verso sinistra)
+  const r = 3 * cell / 5; //raggio fetta
+  const tilt = 6 * Math.PI / 5;        //inclinazione (negativo = verso sinistra)
 
   ctx.save();
   ctx.translate(cx, cy);
@@ -1251,8 +1255,6 @@ function drawWatermelon(ctx, slice) {
 
   ctx.restore();
 }
-
-
 
 
 //weeee funghetto!!!
@@ -1323,8 +1325,8 @@ function drawMushroom(ctx, poison) {
 function drawPoison(ctx, poison) {
   const cx = poison.x * cell + cell / 2;
   const cy = poison.y * cell + cell / 2;
-  const w = cell * 0.8;      // larghezza barile
-  const h = cell * 1.4;      // altezza barile
+  const w = cell * 0.8;  // larghezza barile
+  const h = cell * 1.4;  // altezza barile
   const r = 4;               // angolo arrotondato
 
   //corpo del barile giallo
@@ -1364,7 +1366,6 @@ function drawPoison(ctx, poison) {
 }
 
 
-
 //ciliegie
 function drawCherries(ctx, fruit) {
   const cx = fruit.x * cell + cell / 2;
@@ -1391,6 +1392,16 @@ function drawCherries(ctx, fruit) {
   ctx.lineTo(0, -8);
   ctx.lineTo(4, 1);
   ctx.stroke();
+  
+  //foglietta
+  ctx.fillStyle = COLORS.medGreen;
+  ctx.beginPath();
+			ctx.moveTo(0, -8);
+  ctx.quadraticCurveTo(4, -10, 
+					   9, -2);
+  ctx.quadraticCurveTo(4, 0, 
+					   0, -8);
+  ctx.fill();
 
   //riflessi bianchi
   ctx.fillStyle = COLORS.white;
@@ -1403,7 +1414,6 @@ function drawCherries(ctx, fruit) {
 
   ctx.restore();
 }
-
 
 
 //banana!!!
@@ -1907,9 +1917,10 @@ function drawStatsArray(ctx, canvas) {
   ctx.fillText('STATS:', fakeObj.x * cell + 2.5 * cell, fakeObj.y * cell + cell / 2);
   
   let total = 0;
+  
   for (let type = 0; type < 11; type++) {
     fakeObj = {x:2, y:(type*2)+2};
-    switch(type) {
+	switch(type) {
 	  case 0: drawApple(ctx, fakeObj); break;
 	  case 1: drawBanana(ctx, fakeObj); break;
 	  case 2: drawMushroom(ctx, fakeObj); break;
@@ -1920,7 +1931,7 @@ function drawStatsArray(ctx, canvas) {
 	  case 7: drawWatermelon(ctx, fakeObj); break;
 	  case 8: drawBurger(ctx, fakeObj); break;
 	  case 9: drawCherries(ctx, fakeObj); break;
-	  case 10: drawRockyGraffietto(ctx, fakeObj); break;//HIDDEN!!!
+	  case 10: drawRockyGraffietto(ctx, fakeObj); break;
 	}
 	ctx.fillStyle = COLORS.white;
     ctx.fillText(statsArray[type], fakeObj.x * cell + 2.5 * cell, fakeObj.y * cell + cell / 2);
@@ -1941,6 +1952,7 @@ function drawStatsArray(ctx, canvas) {
 let lastTime = 0;
 const moveDelay = 200;
 let moveTimer = 0;
+
 
 function gameLoop(timestamp) {
   if (!alive) return;
@@ -1981,7 +1993,8 @@ function gameLoop(timestamp) {
   
   
   //console.log('t='+t+' snake=',snake);
-    
+	
+	
   //corpo
   for (let i = 1; i < snake.length; i++) {
     drawSegment(gameCtx, snake[i], snake[i-1], i === snake.length - 1);
@@ -2003,6 +2016,9 @@ function gameLoop(timestamp) {
 	y:(snake[0].y - snake[0].oldY)
   }
   drawHead(gameCtx, headPos, headDir, snake[0]);
+
+
+
 
   if (redrawStats) drawStatsArray(statsCtx, statsCanvas);
 
